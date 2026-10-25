@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag of the release to build (e.g. v1.0.0)"
+        description: "Version to publish (e.g. v1.0.0). The tag is created on the selected branch if missing."
         required: true
 
 permissions:
@@ -25,8 +25,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
       - uses: actions/setup-java@v6
         with:
@@ -91,5 +89,5 @@ jobs:
             gh release upload "$TAG" "$APK" --clobber
             gh release edit "$TAG" --draft=false --prerelease=false --latest
           else
-            gh release create "$TAG" "$APK" --title "myIPTV ${{ steps.version.outputs.name }}" --generate-notes --latest
+            gh release create "$TAG" "$APK" --target "$GITHUB_SHA" --title "myIPTV ${{ steps.version.outputs.name }}" --generate-notes --latest
           fi
