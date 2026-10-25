@@ -8,18 +8,25 @@ on:
     tags: ["v*", "[0-9]*"]
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag of the release to build (e.g. v1.0.0)"
+        required: true
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || github.ref_name }}
+  group: release-${{ inputs.tag || github.event.release.tag_name || github.ref_name }}
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-java@v6
         with:
@@ -31,7 +38,7 @@ jobs:
       - name: Compute version
         id: version
         run: |
-          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          TAG="${{ inputs.tag || github.event.release.tag_name || github.ref_name }}"
           VERSION="${TAG#v}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           IFS='.' read -r MAJOR MINOR PATCH <<< "${VERSION%%-*}"
@@ -56,10 +63,22 @@ jobs:
           MYIPTV_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           MYIPTV_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          set -o pipefail
           ./gradlew assembleRelease \
             -PappVersionName=${{ steps.version.outputs.name }} \
-            -PappVersionCode=${{ steps.version.outputs.code }}
+            -PappVersionCode=${{ steps.version.outputs.code }} 2>&1 | tee build.log
           cp app/build/outputs/apk/release/app-release.apk "myIPTV-${{ steps.version.outputs.name }}.apk"
+
+      - name: Report build errors
+        if: failure()
+        run: |
+          { grep -E '^e: ' build.log; grep -A14 'What went wrong' build.log | grep -vE 'Run with|Get more help|^--$'; } | head -n 60 > errors.txt || true
+          split -l 20 errors.txt chunk_ || true
+          for f in chunk_*; do
+            [ -s "$f" ] || continue
+            msg=$(sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g' "$f")
+            echo "::error title=Build errors::$msg"
+          done
 
       - name: Publish GitHub release
         env:
