@@ -176,7 +176,14 @@ fun MyIptvTheme(themeColor: String, light: Boolean, content: @Composable () -> U
     )
     CompositionLocalProvider(LocalIsLightTheme provides light) {
         M3Theme(colorScheme = m3) {
-            TvTheme(colorScheme = tv, content = content)
+            TvTheme(colorScheme = tv) {
+                // Text outside of a Surface must still follow the theme (black is the library default).
+                CompositionLocalProvider(
+                    androidx.tv.material3.LocalContentColor provides tv.onBackground,
+                    androidx.compose.material3.LocalContentColor provides m3.onBackground,
+                    content = content,
+                )
+            }
         }
     }
 }

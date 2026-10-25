@@ -78,6 +78,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.tv.material3.Button
+import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.Icon
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.ListItemDefaults
@@ -102,9 +105,18 @@ import io.github.nanobuo.myiptv.ui.components.rememberTimeFormatter
 import kotlinx.coroutines.delay
 import java.util.Locale
 
-private enum class Overlay { None, Channels, Tracks }
+private enum class Overlay { None, Channels, Audio, Subtitles, Aspect }
+
+/** Buttons shown in the player controls, in order. */
+private enum class Control(val label: Int, val icon: ImageVector) {
+    Audio(R.string.audio, Icons.Default.Audiotrack),
+    Subtitles(R.string.subtitles, Icons.Default.Subtitles),
+    Aspect(R.string.aspect_ratio, Icons.Default.AspectRatio),
+    Guide(R.string.tv_guide, Icons.Default.CalendarMonth),
+}
 
 private const val BANNER_TIMEOUT_MS = 5_000L
+private const val CONTROLS_TIMEOUT_MS = 8_000L
 private const val NUMBER_INPUT_TIMEOUT_MS = 1_800L
 
 @Composable
@@ -122,6 +134,10 @@ fun PlayerScreen(vm: MainViewModel) {
     var overlay by remember { mutableStateOf(Overlay.None) }
     var bannerVisible by remember { mutableStateOf(true) }
     var statsVisible by remember { mutableStateOf(false) }
+    var controlsVisible by remember { mutableStateOf(false) }
+    var controlsToken by remember { mutableIntStateOf(0) }
+    var lastControl by remember { mutableStateOf(Control.Audio) }
+    val controlRequesters = remember { Control.entries.associateWith { FocusRequester() } }
     var bannerToken by remember { mutableIntStateOf(0) }
     var numberInput by remember { mutableStateOf("") }
     var aspectMode by rememberSaveable { mutableStateOf(AspectMode.Fit) }
@@ -132,8 +148,14 @@ fun PlayerScreen(vm: MainViewModel) {
     }
 
     LaunchedEffect(ui.currentKey) { showBanner() }
-    LaunchedEffect(bannerToken, bannerVisible, statsVisible) {
-        if (bannerVisible && !statsVisible) {
+    LaunchedEffect(controlsToken, controlsVisible, overlay) {
+        if (controlsVisible && overlay == Overlay.None) {
+            delay(CONTROLS_TIMEOUT_MS)
+            controlsVisible = false
+        }
+    }
+    LaunchedEffect(bannerToken, bannerVisible) {
+        if (bannerVisible) {
             delay(BANNER_TIMEOUT_MS)
             bannerVisible = false
         }
@@ -147,20 +169,38 @@ fun PlayerScreen(vm: MainViewModel) {
     }
 
     val rootFocus = remember { FocusRequester() }
-    LaunchedEffect(overlay) {
+    LaunchedEffect(overlay, controlsVisible) {
         if (overlay == Overlay.None) {
             withFrameNanos { }
-            runCatching { rootFocus.requestFocus() }
+            val target = if (controlsVisible) controlRequesters.getValue(lastControl) else rootFocus
+            runCatching { target.requestFocus() }
         }
     }
 
-    BackHandler(enabled = overlay != Overlay.None || numberInput.isNotEmpty() || bannerVisible || statsVisible) {
+    BackHandler(
+        enabled = overlay != Overlay.None || numberInput.isNotEmpty() || controlsVisible || bannerVisible || statsVisible,
+    ) {
         when {
             overlay != Overlay.None -> overlay = Overlay.None
             numberInput.isNotEmpty() -> numberInput = ""
-            else -> {
+            controlsVisible -> {
+                controlsVisible = false
                 bannerVisible = false
-                statsVisible = false
+            }
+            statsVisible -> statsVisible = false
+            else -> bannerVisible = false
+        }
+    }
+
+    fun openControl(control: Control) {
+        lastControl = control
+        when (control) {
+            Control.Audio -> overlay = Overlay.Audio
+            Control.Subtitles -> overlay = Overlay.Subtitles
+            Control.Aspect -> overlay = Overlay.Aspect
+            Control.Guide -> {
+                controlsVisible = false
+                vm.navigate(Screen.Guide)
             }
         }
     }
@@ -171,9 +211,28 @@ fun PlayerScreen(vm: MainViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .onPreviewKeyEvent { event ->
+                // Any key keeps the controls on screen a little longer.
+                if (event.type == KeyEventType.KeyDown) controlsToken++
+                false
+            }
             .onKeyEvent { event ->
                 if (overlay != Overlay.None) return@onKeyEvent false
                 if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                if (controlsVisible) {
+                    // With the controls open ◀▶ move between buttons, ▲▼ still change channel.
+                    return@onKeyEvent when (event.key) {
+                        Key.DirectionUp, Key.ChannelUp -> {
+                            vm.zap(if (invert && event.key == Key.DirectionUp) -1 else 1)
+                            true
+                        }
+                        Key.DirectionDown, Key.ChannelDown -> {
+                            vm.zap(if (invert && event.key == Key.DirectionDown) 1 else -1)
+                            true
+                        }
+                        else -> false
+                    }
+                }
                 val code = event.nativeKeyEvent.keyCode
                 if (code in AndroidKeyEvent.KEYCODE_0..AndroidKeyEvent.KEYCODE_9 ||
                     code in AndroidKeyEvent.KEYCODE_NUMPAD_0..AndroidKeyEvent.KEYCODE_NUMPAD_9
@@ -193,23 +252,18 @@ fun PlayerScreen(vm: MainViewModel) {
                             numberInput = ""
                         } else if (playerState.error != null) {
                             vm.player.retry()
-                        } else if (statsVisible) {
-                            statsVisible = false
-                            bannerVisible = false
                         } else {
-                            statsVisible = true
-                            showBanner()
+                            controlsVisible = true
                         }
                     }
                     Key.DirectionLeft -> {
                         overlay = Overlay.Channels
                     }
-                    Key.DirectionRight, Key.Menu -> {
-                        overlay = Overlay.Tracks
-                    }
-                    Key.Info -> {
+                    Key.DirectionRight, Key.Info -> {
                         statsVisible = !statsVisible
-                        if (statsVisible) showBanner() else bannerVisible = false
+                    }
+                    Key.Menu -> {
+                        controlsVisible = true
                     }
                     Key.Guide -> vm.navigate(Screen.Guide)
                     Key.LastChannel -> vm.playPrevious()
@@ -218,7 +272,7 @@ fun PlayerScreen(vm: MainViewModel) {
                 true
             }
             .focusRequester(rootFocus)
-            .focusable(enabled = overlay == Overlay.None),
+            .focusable(enabled = overlay == Overlay.None && !controlsVisible),
     ) {
         FullScreenVideo(exoPlayer, aspectMode, playerState.videoAspect)
 
@@ -245,7 +299,7 @@ fun PlayerScreen(vm: MainViewModel) {
             Surface(
                 modifier = Modifier.align(Alignment.TopEnd).padding(32.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+                colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), contentColor = MaterialTheme.colorScheme.onSurface),
             ) {
                 Text(
                     numberInput.padEnd(maxOf(numberInput.length, 3), '_'),
@@ -257,7 +311,7 @@ fun PlayerScreen(vm: MainViewModel) {
         }
 
         AnimatedVisibility(
-            visible = bannerVisible && overlay == Overlay.None && channel != null,
+            visible = (bannerVisible || controlsVisible) && overlay == Overlay.None && channel != null,
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -270,6 +324,18 @@ fun PlayerScreen(vm: MainViewModel) {
                     formatTime = formatTime,
                     playerState = playerState,
                     isFavorite = channel.key in settings?.favorites.orEmpty(),
+                    controls = if (controlsVisible) {
+                        {
+                            PlayerControls(
+                                requesters = controlRequesters,
+                                aspectMode = aspectMode,
+                                onFocus = { lastControl = it },
+                                onClick = { openControl(it) },
+                            )
+                        }
+                    } else {
+                        null
+                    },
                 )
             }
         }
@@ -296,20 +362,31 @@ fun PlayerScreen(vm: MainViewModel) {
         }
 
         AnimatedVisibility(
-            visible = overlay == Overlay.Tracks,
+            visible = overlay == Overlay.Audio || overlay == Overlay.Subtitles || overlay == Overlay.Aspect,
             enter = slideInHorizontally { it } + fadeIn(),
             exit = slideOutHorizontally { it } + fadeOut(),
             modifier = Modifier.align(Alignment.CenterEnd),
         ) {
-            TrackPanel(
+            // Derived from the last button used, so the panel stays the same while it animates out.
+            OptionPanel(
+                kind = when (lastControl) {
+                    Control.Subtitles -> Overlay.Subtitles
+                    Control.Aspect -> Overlay.Aspect
+                    else -> Overlay.Audio
+                },
                 state = playerState,
                 aspectMode = aspectMode,
-                onAudio = { vm.player.selectAudio(it) },
-                onText = { vm.player.selectText(it) },
-                onAspect = { aspectMode = it },
-                onGuide = {
+                onAudio = {
+                    vm.player.selectAudio(it)
                     overlay = Overlay.None
-                    vm.navigate(Screen.Guide)
+                },
+                onText = {
+                    vm.player.selectText(it)
+                    overlay = Overlay.None
+                },
+                onAspect = {
+                    aspectMode = it
+                    overlay = Overlay.None
                 },
                 onClose = { overlay = Overlay.None },
             )
@@ -322,7 +399,7 @@ private fun ErrorBox(message: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.padding(32.dp),
         shape = RoundedCornerShape(24.dp),
-        colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
+        colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), contentColor = MaterialTheme.colorScheme.onSurface),
     ) {
         Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(40.dp))
@@ -346,6 +423,7 @@ private fun InfoBanner(
     formatTime: (Long) -> String,
     playerState: PlayerUiState,
     isFavorite: Boolean,
+    controls: (@Composable () -> Unit)? = null,
 ) {
     val (current, next) = remember(epg, channel.key, now / 30_000) { epg.nowAndNext(channel.key, now) }
     Box(
@@ -426,7 +504,11 @@ private fun InfoBanner(
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                Text(stringResource(R.string.player_hint), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.55f))
+                if (controls != null) {
+                    controls()
+                } else {
+                    Text(stringResource(R.string.player_hint), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.55f))
+                }
             }
         }
     }
@@ -491,7 +573,7 @@ private fun ChannelListPanel(
                 }
             },
         shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
-        colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+        colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f), contentColor = MaterialTheme.colorScheme.onSurface),
     ) {
         Column(Modifier.padding(vertical = 24.dp, horizontal = 16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
@@ -571,17 +653,50 @@ private fun ChannelListPanel(
 }
 
 @Composable
-private fun TrackPanel(
+private fun PlayerControls(
+    requesters: Map<Control, FocusRequester>,
+    aspectMode: AspectMode,
+    onFocus: (Control) -> Unit,
+    onClick: (Control) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Control.entries.forEach { control ->
+            Button(
+                onClick = { onClick(control) },
+                modifier = Modifier
+                    .focusRequester(requesters.getValue(control))
+                    .onFocusChanged { if (it.isFocused) onFocus(control) },
+                colors = ButtonDefaults.colors(
+                    containerColor = Color.White.copy(alpha = 0.14f),
+                    contentColor = Color.White,
+                    focusedContainerColor = Color.White,
+                    focusedContentColor = Color.Black,
+                ),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Icon(control.icon, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    if (control == Control.Aspect) stringResource(aspectMode.label) else stringResource(control.label),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OptionPanel(
+    kind: Overlay,
     state: PlayerUiState,
     aspectMode: AspectMode,
     onAudio: (TrackOption) -> Unit,
     onText: (TrackOption?) -> Unit,
     onAspect: (AspectMode) -> Unit,
-    onGuide: () -> Unit,
     onClose: () -> Unit,
 ) {
-    val firstRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
+    val firstRequester = remember(kind) { FocusRequester() }
+    LaunchedEffect(kind) {
         withFrameNanos { }
         runCatching { firstRequester.requestFocus() }
     }
@@ -600,43 +715,58 @@ private fun TrackPanel(
                 }
             },
         shape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp),
-        colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+        colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f), contentColor = MaterialTheme.colorScheme.onSurface),
     ) {
         LazyColumn(
             contentPadding = PaddingValues(vertical = 24.dp, horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            item {
-                OptionRow(
-                    label = stringResource(R.string.tv_guide),
-                    selected = false,
-                    onClick = onGuide,
-                    icon = Icons.Default.CalendarMonth,
-                    modifier = Modifier.focusRequester(firstRequester),
-                )
-            }
-            item { SectionTitle(Icons.Default.Audiotrack, stringResource(R.string.audio)) }
-            if (state.audioTracks.isEmpty()) {
-                item { OptionRow(stringResource(R.string.no_tracks), selected = false, onClick = {}) }
-            }
-            itemsIndexed(state.audioTracks) { _, track ->
-                OptionRow(
-                    label = track.label,
-                    selected = track.selected,
-                    onClick = { onAudio(track) },
-                )
-            }
-            item { SectionTitle(Icons.Default.Subtitles, stringResource(R.string.subtitles)) }
-            item {
-                OptionRow(stringResource(R.string.subtitles_off), selected = !state.textEnabled, onClick = { onText(null) })
-            }
-            itemsIndexed(state.textTracks) { _, track ->
-                OptionRow(track.label, selected = state.textEnabled && track.selected, onClick = { onText(track) })
-            }
-            item { SectionTitle(Icons.Default.AspectRatio, stringResource(R.string.aspect_ratio)) }
-            AspectMode.entries.forEach { mode ->
-                item {
-                    OptionRow(stringResource(mode.label), selected = aspectMode == mode, onClick = { onAspect(mode) })
+            when (kind) {
+                Overlay.Subtitles -> {
+                    item { SectionTitle(Icons.Default.Subtitles, stringResource(R.string.subtitles)) }
+                    item {
+                        OptionRow(
+                            stringResource(R.string.subtitles_off),
+                            selected = !state.textEnabled,
+                            onClick = { onText(null) },
+                            modifier = Modifier.focusRequester(firstRequester),
+                        )
+                    }
+                    itemsIndexed(state.textTracks) { _, track ->
+                        OptionRow(track.label, selected = state.textEnabled && track.selected, onClick = { onText(track) })
+                    }
+                }
+                Overlay.Aspect -> {
+                    item { SectionTitle(Icons.Default.AspectRatio, stringResource(R.string.aspect_ratio)) }
+                    itemsIndexed(AspectMode.entries) { index, mode ->
+                        OptionRow(
+                            stringResource(mode.label),
+                            selected = aspectMode == mode,
+                            onClick = { onAspect(mode) },
+                            modifier = if (index == 0) Modifier.focusRequester(firstRequester) else Modifier,
+                        )
+                    }
+                }
+                else -> {
+                    item { SectionTitle(Icons.Default.Audiotrack, stringResource(R.string.audio)) }
+                    if (state.audioTracks.isEmpty()) {
+                        item {
+                            OptionRow(
+                                stringResource(R.string.no_tracks),
+                                selected = false,
+                                onClick = onClose,
+                                modifier = Modifier.focusRequester(firstRequester),
+                            )
+                        }
+                    }
+                    itemsIndexed(state.audioTracks) { index, track ->
+                        OptionRow(
+                            label = track.label,
+                            selected = track.selected,
+                            onClick = { onAudio(track) },
+                            modifier = if (index == 0) Modifier.focusRequester(firstRequester) else Modifier,
+                        )
+                    }
                 }
             }
         }

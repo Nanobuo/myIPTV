@@ -39,7 +39,7 @@
     <string name="aspect_zoom">Zoom</string>
     <string name="no_tracks">Not available</string>
     <string name="track_number">Track %1$d</string>
-    <string name="player_hint">OK: info and stream stats · ▲▼ change channel · ◀ channel list · ▶ audio, format, guide</string>
+    <string name="player_hint">OK: controls · ▲▼ change channel · ◀ channel list · ▶ stream info</string>
     <string name="audio_tracks_count">%1$d audio</string>
     <string name="error_http">The server refused the stream (%1$s)</string>
     <string name="error_network">Network problem: check your connection</string>
@@ -147,4 +147,5 @@
     <string name="stat_live_offset">Live delay</string>
     <string name="stat_dropped">Dropped frames</string>
     <string name="stat_decoder">Decoder</string>
+    <string name="groups">Groups</string>
 </resources>

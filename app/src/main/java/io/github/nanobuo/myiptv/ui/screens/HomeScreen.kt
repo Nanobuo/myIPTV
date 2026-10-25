@@ -28,7 +28,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Settings
@@ -100,12 +104,12 @@ fun HomeScreen(vm: MainViewModel) {
     val context = LocalContext.current
 
     var selectedGroup by rememberSaveable { mutableStateOf(GROUP_ALL) }
-    // Changing group while scrolling the list with the remote is debounced to keep it smooth.
-    var pendingGroup by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(pendingGroup) {
-        val target = pendingGroup ?: return@LaunchedEffect
-        delay(250)
-        selectedGroup = target
+    var groupsExpanded by rememberSaveable { mutableStateOf(false) }
+    val groupHeaderRequester = remember { FocusRequester() }
+    val selectedGroupRequester = remember { FocusRequester() }
+    BackHandler(enabled = groupsExpanded) {
+        groupsExpanded = false
+        runCatching { groupHeaderRequester.requestFocus() }
     }
     val exoPlayer by vm.player.exoPlayer.collectAsStateWithLifecycle()
     val playingKey by vm.player.playingKey.collectAsStateWithLifecycle()
@@ -153,38 +157,7 @@ fun HomeScreen(vm: MainViewModel) {
                     fontWeight = FontWeight.Bold,
                 )
             }
-            LazyColumn(
-                modifier = Modifier.weight(1f).focusRestorer(),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                contentPadding = PaddingValues(vertical = 4.dp),
-            ) {
-                items(groups, key = { it }) { group ->
-                    val icon: ImageVector? = when (group) {
-                        GROUP_ALL -> Icons.Default.ViewList
-                        GROUP_FAVORITES -> Icons.Default.Favorite
-                        else -> null
-                    }
-                    ListItem(
-                        selected = group == selectedGroup,
-                        onClick = {
-                            pendingGroup = null
-                            selectedGroup = group
-                        },
-                        modifier = Modifier.onFocusChanged { if (it.isFocused) pendingGroup = group },
-                        glow = appListItemGlow(),
-                        leadingContent = if (icon != null) {
-                            { Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) }
-                        } else {
-                            null
-                        },
-                        headlineContent = {
-                            Text(groupLabel(group), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        },
-                        scale = ListItemDefaults.scale(focusedScale = 1.02f),
-                    )
-                }
-            }
-            Spacer(Modifier.height(8.dp))
+            // Guide and settings stay at the top, always one step away.
             ListItem(
                 selected = false,
                 onClick = { vm.navigate(Screen.Guide) },
@@ -201,6 +174,67 @@ fun HomeScreen(vm: MainViewModel) {
                 headlineContent = { Text(stringResource(R.string.settings)) },
                 scale = ListItemDefaults.scale(focusedScale = 1.02f),
             )
+            Spacer(Modifier.height(12.dp))
+            // Groups: a single entry that opens and closes the full list.
+            ListItem(
+                selected = groupsExpanded,
+                onClick = { groupsExpanded = !groupsExpanded },
+                modifier = Modifier.focusRequester(groupHeaderRequester),
+                glow = appListItemGlow(),
+                scale = ListItemDefaults.scale(focusedScale = 1.02f),
+                leadingContent = {
+                    Icon(
+                        if (selectedGroup == GROUP_FAVORITES) Icons.Default.Favorite else Icons.Default.ViewList,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+                overlineContent = { Text(stringResource(R.string.groups)) },
+                headlineContent = { Text(groupLabel(selectedGroup), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                trailingContent = {
+                    Icon(
+                        if (groupsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+            )
+            if (groupsExpanded) {
+                val groupListState = rememberLazyListState()
+                LaunchedEffect(Unit) {
+                    groupListState.scrollToItem((groups.indexOf(selectedGroup) - 2).coerceAtLeast(0))
+                    withFrameNanos { }
+                    runCatching { selectedGroupRequester.requestFocus() }
+                }
+                LazyColumn(
+                    state = groupListState,
+                    modifier = Modifier.weight(1f).padding(start = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    contentPadding = PaddingValues(vertical = 4.dp),
+                ) {
+                    items(groups, key = { it }) { group ->
+                        ListItem(
+                            selected = group == selectedGroup,
+                            onClick = {
+                                selectedGroup = group
+                                groupsExpanded = false
+                                runCatching { groupHeaderRequester.requestFocus() }
+                            },
+                            modifier = if (group == selectedGroup) Modifier.focusRequester(selectedGroupRequester) else Modifier,
+                            glow = appListItemGlow(),
+                            headlineContent = {
+                                Text(groupLabel(group), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            },
+                            trailingContent = if (group == selectedGroup) {
+                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                            } else {
+                                null
+                            },
+                            scale = ListItemDefaults.scale(focusedScale = 1.02f),
+                        )
+                    }
+                }
+            }
         }
 
         // ---- Channels ---------------------------------------------------------------------

@@ -44,7 +44,7 @@ in ordine, con la guida TV sempre a portata di mano.
 | Tasto | Cosa fa |
 |---|---|
 | ⬆️ ⬇️ | Scorri i canali |
-| ⬅️ | Vai ai gruppi (Tutti, Preferiti, …) e alla Guida TV |
+| ⬅️ | Vai al menu: Guida TV, Impostazioni e **Gruppi** (premi OK per aprire o chiudere l'elenco dei gruppi) |
 | *(fermati su un canale)* | Parte l'anteprima in alto a destra |
 | **OK** | Guarda il canale a schermo intero |
 | **OK tenuto premuto** | Aggiungi o togli dai preferiti |
@@ -55,9 +55,9 @@ in ordine, con la guida TV sempre a portata di mano.
 | Tasto | Cosa fa |
 |---|---|
 | ⬆️ / ⬇️ | Canale successivo / precedente |
-| **OK** | Mostra cosa va in onda ora e dopo e le informazioni sullo streaming (premi di nuovo per nasconderle) |
+| **OK** | Mostra cosa va in onda e i comandi: **Audio**, **Sottotitoli**, **Formato** e **Guida TV** (scegli con ⬅️ ➡️ e OK) |
 | ⬅️ | Apri la lista dei canali (con ⬅️ ➡️ cambi gruppo) |
-| ➡️ | Apri la Guida TV, scegli audio, sottotitoli e formato dell'immagine |
+| ➡️ | Mostra o nasconde le informazioni sullo streaming (risoluzione, formato, velocità…) |
 | Tasti numerici | Vai direttamente al canale con quel numero (se il telecomando li ha) |
 | **Indietro** | Torna alla lista dei canali |
 

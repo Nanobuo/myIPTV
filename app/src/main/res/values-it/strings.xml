@@ -37,7 +37,7 @@
     <string name="aspect_zoom">Zoom</string>
     <string name="no_tracks">Non disponibili</string>
     <string name="track_number">Traccia %1$d</string>
-    <string name="player_hint">OK: info e statistiche · ▲▼ cambia canale · ◀ lista canali · ▶ audio, formato, guida</string>
+    <string name="player_hint">OK: comandi · ▲▼ cambia canale · ◀ lista canali · ▶ info streaming</string>
     <string name="audio_tracks_count">%1$d audio</string>
     <string name="error_http">Il server ha rifiutato il flusso (%1$s)</string>
     <string name="error_network">Problema di rete: controlla la connessione</string>
@@ -145,4 +145,5 @@
     <string name="stat_live_offset">Ritardo dal vivo</string>
     <string name="stat_dropped">Fotogrammi persi</string>
     <string name="stat_decoder">Decoder</string>
+    <string name="groups">Gruppi</string>
 </resources>
