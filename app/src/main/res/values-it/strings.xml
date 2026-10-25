@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Welcome -->
+    <string name="welcome_title">Benvenuto in myIPTV</string>
+    <string name="welcome_text">Aggiungi la tua playlist IPTV per iniziare a guardare. Puoi usare un indirizzo web (URL) oppure un file .m3u salvato sul dispositivo o su una chiavetta USB.</string>
+    <string name="add_playlist">Aggiungi playlist</string>
+
+    <!-- Home -->
+    <string name="group_all">Tutti i canali</string>
+    <string name="group_favorites">Preferiti</string>
+    <string name="group_other">Altro</string>
+    <string name="channels_count">%1$d canali</string>
+    <string name="loading_playlist">Caricamento playlist…</string>
+    <string name="loading_epg">Aggiornamento guida TV…</string>
+    <string name="no_channels">Nessun canale in questa lista</string>
+    <string name="no_favorites">Ancora nessun preferito. Tieni premuto OK su un canale per aggiungerlo.</string>
+    <string name="settings">Impostazioni</string>
+    <string name="now_playing">Ora in onda</string>
+    <string name="up_next">A seguire</string>
+    <string name="no_epg">Nessuna informazione dalla guida</string>
+    <string name="time_range">%1$s – %2$s</string>
+    <string name="minutes_left">Mancano %1$d min</string>
+    <string name="added_to_favorites">Aggiunto ai preferiti</string>
+    <string name="removed_from_favorites">Rimosso dai preferiti</string>
+    <string name="home_hint">OK: guarda · Tieni premuto OK: preferito</string>
+    <string name="playlist_error">Impossibile caricare la playlist: %1$s</string>
+    <string name="epg_error">Impossibile caricare la guida TV: %1$s</string>
+    <string name="retry">Riprova</string>
+
+    <!-- Player -->
+    <string name="audio">Audio</string>
+    <string name="subtitles">Sottotitoli</string>
+    <string name="subtitles_off">Disattivati</string>
+    <string name="aspect_ratio">Formato immagine</string>
+    <string name="aspect_fit">Adatta</string>
+    <string name="aspect_fill">Allarga</string>
+    <string name="aspect_zoom">Zoom</string>
+    <string name="no_tracks">Non disponibili</string>
+    <string name="track_number">Traccia %1$d</string>
+    <string name="player_hint">▲▼ cambia canale · ◀ lista canali · ▶ audio e sottotitoli</string>
+    <string name="audio_tracks_count">%1$d audio</string>
+    <string name="error_http">Il server ha rifiutato il flusso (%1$s)</string>
+    <string name="error_network">Problema di rete: controlla la connessione</string>
+    <string name="error_drm">Questo canale è protetto e non può essere riprodotto</string>
+    <string name="error_generic">Impossibile riprodurre il canale (%1$s)</string>
+    <string name="error_retry_hint">Premi OK per riprovare</string>
+
+    <!-- Playlist editor -->
+    <string name="new_playlist">Nuova playlist</string>
+    <string name="edit_playlist">Modifica playlist</string>
+    <string name="playlist_name">Nome</string>
+    <string name="source_url">Indirizzo web (URL)</string>
+    <string name="source_file">File sul dispositivo</string>
+    <string name="playlist_url">Indirizzo della playlist</string>
+    <string name="playlist_file">File selezionato</string>
+    <string name="no_file_selected">Nessun file selezionato</string>
+    <string name="pick_file_system">Scegli con il selettore di sistema</string>
+    <string name="pick_file_browser">Sfoglia la memoria</string>
+    <string name="epg_url">Indirizzo guida TV (EPG) – facoltativo</string>
+    <string name="epg_url_hint">Lascia vuoto per usare la guida indicata nella playlist</string>
+    <string name="pick_epg_file">Scegli file EPG</string>
+    <string name="user_agent">User-Agent – facoltativo</string>
+    <string name="user_agent_hint">Usato solo se la playlist non ne imposta uno</string>
+    <string name="save">Salva</string>
+    <string name="cancel">Annulla</string>
+    <string name="delete">Elimina</string>
+    <string name="error_missing_source">Inserisci un indirizzo o scegli un file</string>
+    <string name="picker_unavailable">Il selettore file di sistema non è disponibile su questo dispositivo: usa “Sfoglia la memoria”.</string>
+    <string name="my_playlist">La mia playlist</string>
+
+    <!-- File browser -->
+    <string name="file_browser_title">Scegli un file</string>
+    <string name="storage_permission_text">Per sfogliare i file, myIPTV ha bisogno del permesso di accesso alla memoria.</string>
+    <string name="grant_permission">Concedi permesso</string>
+    <string name="permission_unavailable">Questo dispositivo non permette di concedere il permesso da qui. Usa il selettore di sistema o un indirizzo web.</string>
+    <string name="parent_folder">Cartella superiore</string>
+    <string name="empty_folder">Nessun file playlist in questa cartella</string>
+    <string name="internal_storage">Memoria interna</string>
+    <string name="external_storage">Unità esterna</string>
+
+    <!-- Settings -->
+    <string name="section_playlists">Playlist</string>
+    <string name="section_player">Riproduzione</string>
+    <string name="section_appearance">Aspetto e lingua</string>
+    <string name="section_updates">Aggiornamenti</string>
+    <string name="active">In uso</string>
+    <string name="use_playlist">Usa questa playlist</string>
+    <string name="refresh_now">Aggiorna ora</string>
+    <string name="refresh_all">Aggiorna playlist e guida TV</string>
+    <string name="refresh_all_desc">Scarica di nuovo i canali e la guida</string>
+    <string name="invert_up_down">Inverti su/giù</string>
+    <string name="invert_up_down_desc">Su passa al canale precedente</string>
+    <string name="start_last_channel">Avvia sull\'ultimo canale</string>
+    <string name="start_last_channel_desc">All\'apertura riprende l\'ultimo canale guardato</string>
+    <string name="preferred_audio">Lingua audio preferita</string>
+    <string name="audio_system">Come il dispositivo</string>
+    <string name="audio_original">Originale</string>
+    <string name="theme_color">Colore del tema</string>
+    <string name="theme_dynamic">Material You (sistema)</string>
+    <string name="theme_blue">Blu</string>
+    <string name="theme_green">Verde</string>
+    <string name="theme_purple">Viola</string>
+    <string name="theme_orange">Arancione</string>
+    <string name="theme_red">Rosso</string>
+    <string name="language">Lingua</string>
+    <string name="language_system">Come il dispositivo</string>
+    <string name="auto_update">Cerca aggiornamenti automaticamente</string>
+    <string name="auto_update_desc">All\'avvio, al massimo ogni qualche ora</string>
+    <string name="check_updates">Cerca aggiornamenti</string>
+    <string name="version">Versione %1$s</string>
+    <string name="update_checking">Ricerca in corso…</string>
+    <string name="update_up_to_date">Hai già l\'ultima versione</string>
+    <string name="update_failed">Controllo non riuscito: %1$s</string>
+    <string name="playlist_options">Opzioni</string>
+
+    <!-- Update dialog -->
+    <string name="update_available">Aggiornamento disponibile</string>
+    <string name="update_available_text">È disponibile la versione %1$s (hai la %2$s).</string>
+    <string name="update_now">Aggiorna ora</string>
+    <string name="later">Più tardi</string>
+    <string name="update_downloading">Download aggiornamento… %1$d%%</string>
+    <string name="update_installing">Installazione…</string>
+    <string name="update_permission">Per installare gli aggiornamenti, consenti a myIPTV di installare app nella prossima schermata, poi torna qui e premi “Riprova”.</string>
+    <string name="open_settings">Apri impostazioni</string>
+    <string name="update_error">Aggiornamento non riuscito: %1$s</string>
+    <string name="close">Chiudi</string>
+</resources>
