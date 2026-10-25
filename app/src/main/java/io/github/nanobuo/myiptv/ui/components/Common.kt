@@ -41,10 +41,8 @@ fun rememberNow(intervalMs: Long = 20_000L): State<Long> = produceState(System.c
 @Composable
 fun rememberTimeFormatter(): (Long) -> String {
     val context = LocalContext.current
-    return remember(context) {
-        val format = DateFormat.getTimeFormat(context)
-        { time: Long -> format.format(Date(time)) }
-    }
+    val format = remember(context) { DateFormat.getTimeFormat(context) }
+    return remember(format) { { time: Long -> format.format(Date(time)) } }
 }
 
 @Composable
