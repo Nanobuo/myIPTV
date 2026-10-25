@@ -19,10 +19,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Unit tests and debug APK
+      - name: Unit tests and APKs
         run: |
           set -o pipefail
-          ./gradlew testDebugUnitTest assembleDebug --continue 2>&1 | tee build.log
+          ./gradlew testDebugUnitTest assembleDebug assembleRelease --continue 2>&1 | tee build.log
 
       - name: Report build errors
         if: failure()
