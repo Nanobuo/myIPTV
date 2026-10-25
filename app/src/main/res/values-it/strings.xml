@@ -37,7 +37,7 @@
     <string name="aspect_zoom">Zoom</string>
     <string name="no_tracks">Non disponibili</string>
     <string name="track_number">Traccia %1$d</string>
-    <string name="player_hint">▲▼ cambia canale · ◀ lista canali · ▶ audio e sottotitoli</string>
+    <string name="player_hint">OK: info e statistiche · ▲▼ cambia canale · ◀ lista canali · ▶ audio, formato, guida</string>
     <string name="audio_tracks_count">%1$d audio</string>
     <string name="error_http">Il server ha rifiutato il flusso (%1$s)</string>
     <string name="error_network">Problema di rete: controlla la connessione</string>
@@ -124,4 +124,25 @@
     <string name="open_settings">Apri impostazioni</string>
     <string name="update_error">Aggiornamento non riuscito: %1$s</string>
     <string name="close">Chiudi</string>
+
+    <!-- Guide, appearance, stats -->
+    <string name="tv_guide">Guida TV</string>
+    <string name="guide_hint">▲▼ canali · ◀▶ programmi · OK guarda</string>
+    <string name="today">Oggi</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="theme_mode">Aspetto</string>
+    <string name="theme_dark">Scuro</string>
+    <string name="theme_light">Chiaro</string>
+    <string name="stats_title">Informazioni sullo streaming</string>
+    <string name="stat_stream">Flusso</string>
+    <string name="stat_variants">%1$d qualità</string>
+    <string name="stat_resolution">Risoluzione</string>
+    <string name="stat_video">Video</string>
+    <string name="stat_video_bitrate">Bitrate video</string>
+    <string name="stat_audio">Audio</string>
+    <string name="stat_speed">Velocità connessione</string>
+    <string name="stat_buffer">Buffer</string>
+    <string name="stat_live_offset">Ritardo dal vivo</string>
+    <string name="stat_dropped">Fotogrammi persi</string>
+    <string name="stat_decoder">Decoder</string>
 </resources>

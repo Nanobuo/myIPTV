@@ -21,6 +21,11 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.dash.manifest.DashManifest
+import androidx.media3.exoplayer.hls.HlsManifest
+import androidx.media3.exoplayer.smoothstreaming.manifest.SsManifest
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManager
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManagerProvider
 import androidx.media3.exoplayer.drm.FrameworkMediaDrm
@@ -53,6 +58,29 @@ data class PlayerUiState(
     val textTracks: List<TrackOption> = emptyList(),
     val textEnabled: Boolean = false,
     val videoQuality: String? = null,
+    /** Display aspect ratio of the video (width / height), 0 when unknown. */
+    val videoAspect: Float = 0f,
+)
+
+/** Technical information about the stream being played. */
+data class StreamStats(
+    val streamType: String,
+    val variants: Int?,
+    val resolution: String?,
+    val frameRate: Float?,
+    val hdr: String?,
+    val videoCodec: String?,
+    val videoBitrate: Int?,
+    val videoDecoder: String?,
+    val audioCodec: String?,
+    val audioChannels: Int?,
+    val audioSampleRate: Int?,
+    val audioBitrate: Int?,
+    val audioLanguage: String?,
+    val bandwidth: Long,
+    val bufferMs: Long,
+    val liveOffsetMs: Long?,
+    val droppedFrames: Int,
 )
 
 /**
@@ -65,6 +93,18 @@ class PlayerController(
 ) {
     var player: ExoPlayer? = null
         private set
+
+    private val _exoPlayer = MutableStateFlow<ExoPlayer?>(null)
+    /** The current player instance, shared by every screen that shows video. */
+    val exoPlayer: StateFlow<ExoPlayer?> = _exoPlayer.asStateFlow()
+
+    private val _playingKey = MutableStateFlow<String?>(null)
+    /** Key of the channel being played, or null when playback is stopped. */
+    val playingKey: StateFlow<String?> = _playingKey.asStateFlow()
+
+    private val bandwidthMeter by lazy { DefaultBandwidthMeter.getSingletonInstance(context) }
+    private var videoDecoder: String? = null
+    private var audioDecoder: String? = null
 
     private val _state = MutableStateFlow(PlayerUiState())
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
@@ -101,10 +141,35 @@ class PlayerController(
                 h >= 700 -> "HD"
                 else -> "SD"
             }
-            _state.update { it.copy(videoQuality = quality) }
+            val aspect = if (videoSize.height > 0) {
+                videoSize.width * videoSize.pixelWidthHeightRatio / videoSize.height
+            } else {
+                0f
+            }
+            _state.update { it.copy(videoQuality = quality, videoAspect = aspect) }
         }
 
         override fun onPlayerError(error: PlaybackException) = handleError(error)
+    }
+
+    private val analyticsListener = object : AnalyticsListener {
+        override fun onVideoDecoderInitialized(
+            eventTime: AnalyticsListener.EventTime,
+            decoderName: String,
+            initializedTimestampMs: Long,
+            initializationDurationMs: Long,
+        ) {
+            videoDecoder = decoderName
+        }
+
+        override fun onAudioDecoderInitialized(
+            eventTime: AnalyticsListener.EventTime,
+            decoderName: String,
+            initializedTimestampMs: Long,
+            initializationDurationMs: Long,
+        ) {
+            audioDecoder = decoderName
+        }
     }
 
     fun ensurePlayer(): ExoPlayer {
@@ -121,11 +186,14 @@ class PlayerController(
                 true,
             )
             .setHandleAudioBecomingNoisy(true)
+            .setBandwidthMeter(bandwidthMeter)
             .build()
         p.addListener(listener)
+        p.addAnalyticsListener(analyticsListener)
         p.playWhenReady = true
         applyAudioPreference(p)
         player = p
+        _exoPlayer.value = p
         current?.let { prepare(it) }
         return p
     }
@@ -135,11 +203,15 @@ class PlayerController(
         player?.removeListener(listener)
         player?.release()
         player = null
+        _exoPlayer.value = null
     }
 
     fun play(channel: Channel) {
         handler.removeCallbacksAndMessages(null)
         current = channel
+        _playingKey.value = channel.key
+        videoDecoder = null
+        audioDecoder = null
         attempts = buildAttempts(channel)
         attemptIndex = 0
         retryCount = 0
@@ -156,6 +228,8 @@ class PlayerController(
     fun stop() {
         handler.removeCallbacksAndMessages(null)
         current = null
+        _playingKey.value = null
+        _state.value = PlayerUiState()
         player?.stop()
         player?.clearMediaItems()
     }
@@ -173,6 +247,83 @@ class PlayerController(
         p.setMediaSource(buildMediaSource(channel, attempts[attemptIndex]))
         p.prepare()
         p.play()
+    }
+
+    // ---- Statistics ------------------------------------------------------------------------
+
+    fun stats(): StreamStats? {
+        val p = player ?: return null
+        if (current == null) return null
+        val video = p.videoFormat
+        val audio = p.audioFormat
+        val manifest = p.currentManifest
+        val streamType = when (manifest) {
+            is HlsManifest -> "HLS"
+            is DashManifest -> "DASH"
+            is SsManifest -> "SmoothStreaming"
+            else -> when {
+                p.currentMediaItem?.localConfiguration?.uri?.scheme == "rtsp" -> "RTSP"
+                else -> "MPEG-TS / HTTP"
+            }
+        }
+        val variants = (manifest as? HlsManifest)?.multivariantPlaylist?.variants?.size?.takeIf { it > 0 }
+        val videoSize = p.videoSize
+        val resolution = when {
+            videoSize.width > 0 -> "${videoSize.width}×${videoSize.height}"
+            video != null && video.width > 0 -> "${video.width}×${video.height}"
+            else -> null
+        }
+        val hdr = when (video?.colorInfo?.colorTransfer) {
+            C.COLOR_TRANSFER_ST2084 -> if (video?.sampleMimeType == MimeTypes.VIDEO_DOLBY_VISION) "Dolby Vision" else "HDR10"
+            C.COLOR_TRANSFER_HLG -> "HLG"
+            else -> null
+        }
+        val liveOffset = p.currentLiveOffset.takeIf { it != C.TIME_UNSET && it >= 0 }
+        return StreamStats(
+            streamType = streamType,
+            variants = variants,
+            resolution = resolution,
+            frameRate = video?.frameRate?.takeIf { it > 0 },
+            hdr = hdr,
+            videoCodec = video?.let { videoCodecName(it) },
+            videoBitrate = video?.bitrate?.takeIf { it != Format.NO_VALUE && it > 0 },
+            videoDecoder = videoDecoder,
+            audioCodec = audio?.let { audioCodecName(it.sampleMimeType) ?: it.sampleMimeType },
+            audioChannels = audio?.channelCount?.takeIf { it != Format.NO_VALUE && it > 0 },
+            audioSampleRate = audio?.sampleRate?.takeIf { it != Format.NO_VALUE && it > 0 },
+            audioBitrate = audio?.bitrate?.takeIf { it != Format.NO_VALUE && it > 0 },
+            audioLanguage = audio?.let { languageName(it) },
+            bandwidth = bandwidthMeter.bitrateEstimate,
+            bufferMs = p.totalBufferedDuration,
+            liveOffsetMs = liveOffset,
+            droppedFrames = p.videoDecoderCounters?.droppedBufferCount ?: 0,
+        )
+    }
+
+    private fun videoCodecName(format: Format): String? {
+        val name = when (format.sampleMimeType) {
+            MimeTypes.VIDEO_H264 -> "H.264 (AVC)"
+            MimeTypes.VIDEO_H265 -> "H.265 (HEVC)"
+            MimeTypes.VIDEO_AV1 -> "AV1"
+            MimeTypes.VIDEO_VP9 -> "VP9"
+            MimeTypes.VIDEO_VP8 -> "VP8"
+            MimeTypes.VIDEO_MPEG2 -> "MPEG-2"
+            MimeTypes.VIDEO_DOLBY_VISION -> "Dolby Vision"
+            else -> format.sampleMimeType
+        }
+        val codecs = format.codecs?.takeIf { it.isNotBlank() }
+        return if (name != null && codecs != null) "$name · $codecs" else name ?: codecs
+    }
+
+    private fun audioCodecName(mime: String?): String? = when (mime) {
+        MimeTypes.AUDIO_AC3 -> "Dolby Digital"
+        MimeTypes.AUDIO_E_AC3, MimeTypes.AUDIO_E_AC3_JOC -> "Dolby Digital+"
+        MimeTypes.AUDIO_AC4 -> "Dolby AC-4"
+        MimeTypes.AUDIO_DTS, MimeTypes.AUDIO_DTS_HD -> "DTS"
+        MimeTypes.AUDIO_AAC -> "AAC"
+        MimeTypes.AUDIO_MPEG, MimeTypes.AUDIO_MPEG_L2 -> "MPEG"
+        MimeTypes.AUDIO_OPUS -> "Opus"
+        else -> null
     }
 
     // ---- Track selection -------------------------------------------------------------------
@@ -234,16 +385,7 @@ class PlayerController(
         val name = format.label?.takeIf { it.isNotBlank() } ?: languageName(format)
             ?: context.getString(R.string.track_number, position)
         val details = listOfNotNull(
-            when (format.sampleMimeType) {
-                MimeTypes.AUDIO_AC3 -> "Dolby Digital"
-                MimeTypes.AUDIO_E_AC3, MimeTypes.AUDIO_E_AC3_JOC -> "Dolby Digital+"
-                MimeTypes.AUDIO_AC4 -> "Dolby AC-4"
-                MimeTypes.AUDIO_DTS, MimeTypes.AUDIO_DTS_HD -> "DTS"
-                MimeTypes.AUDIO_AAC -> "AAC"
-                MimeTypes.AUDIO_MPEG, MimeTypes.AUDIO_MPEG_L2 -> "MPEG"
-                MimeTypes.AUDIO_OPUS -> "Opus"
-                else -> null
-            },
+            audioCodecName(format.sampleMimeType),
             when (format.channelCount) {
                 1 -> "Mono"
                 2 -> "Stereo"

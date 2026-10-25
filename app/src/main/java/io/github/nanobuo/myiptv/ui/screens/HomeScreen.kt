@@ -1,7 +1,16 @@
 package io.github.nanobuo.myiptv.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.media3.exoplayer.ExoPlayer
+import io.github.nanobuo.myiptv.ui.components.VideoSurface
+import io.github.nanobuo.myiptv.ui.theme.appListItemGlow
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,6 +28,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Settings
@@ -66,6 +76,7 @@ import io.github.nanobuo.myiptv.ui.components.rememberTimeFormatter
 
 const val GROUP_ALL = "\u0000all"
 const val GROUP_FAVORITES = "\u0000fav"
+private const val PREVIEW_DELAY_MS = 700L
 
 fun filterChannels(channels: List<Channel>, group: String, favorites: Set<String>): List<Channel> = when (group) {
     GROUP_ALL -> channels
@@ -89,6 +100,16 @@ fun HomeScreen(vm: MainViewModel) {
     val context = LocalContext.current
 
     var selectedGroup by rememberSaveable { mutableStateOf(GROUP_ALL) }
+    // Changing group while scrolling the list with the remote is debounced to keep it smooth.
+    var pendingGroup by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(pendingGroup) {
+        val target = pendingGroup ?: return@LaunchedEffect
+        delay(250)
+        selectedGroup = target
+    }
+    val exoPlayer by vm.player.exoPlayer.collectAsStateWithLifecycle()
+    val playingKey by vm.player.playingKey.collectAsStateWithLifecycle()
+    val playerState by vm.player.state.collectAsStateWithLifecycle()
     val groups = remember(ui.groups) { listOf(GROUP_ALL, GROUP_FAVORITES) + ui.groups }
     val channels = remember(ui.channels, selectedGroup, favorites) {
         filterChannels(ui.channels, selectedGroup, favorites)
@@ -145,8 +166,12 @@ fun HomeScreen(vm: MainViewModel) {
                     }
                     ListItem(
                         selected = group == selectedGroup,
-                        onClick = { selectedGroup = group },
-                        modifier = Modifier.onFocusChanged { if (it.isFocused) selectedGroup = group },
+                        onClick = {
+                            pendingGroup = null
+                            selectedGroup = group
+                        },
+                        modifier = Modifier.onFocusChanged { if (it.isFocused) pendingGroup = group },
+                        glow = appListItemGlow(),
                         leadingContent = if (icon != null) {
                             { Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) }
                         } else {
@@ -162,6 +187,15 @@ fun HomeScreen(vm: MainViewModel) {
             Spacer(Modifier.height(8.dp))
             ListItem(
                 selected = false,
+                onClick = { vm.navigate(Screen.Guide) },
+                leadingContent = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                headlineContent = { Text(stringResource(R.string.tv_guide)) },
+                scale = ListItemDefaults.scale(focusedScale = 1.02f),
+                glow = appListItemGlow(),
+            )
+            ListItem(
+                selected = false,
+                glow = appListItemGlow(),
                 onClick = { vm.navigate(Screen.Settings) },
                 leadingContent = { Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(20.dp)) },
                 headlineContent = { Text(stringResource(R.string.settings)) },
@@ -229,6 +263,7 @@ fun HomeScreen(vm: MainViewModel) {
                         }
                         ChannelRow(
                             channel = channel,
+                            playing = channel.key == playingKey,
                             epg = ui.epg,
                             now = now,
                             isPlaying = channel.key == ui.currentKey,
@@ -259,8 +294,18 @@ fun HomeScreen(vm: MainViewModel) {
         }
 
         // ---- Details ----------------------------------------------------------------------
+        val detailChannel = focused?.takeIf { f -> channels.any { it.key == f.key } } ?: channels.firstOrNull()
+        // Start the preview once the focus rests on a channel for a moment.
+        LaunchedEffect(focused?.key) {
+            val target = focused ?: return@LaunchedEffect
+            delay(PREVIEW_DELAY_MS)
+            vm.preview(target)
+        }
         ChannelDetails(
-            channel = focused?.takeIf { f -> channels.any { it.key == f.key } } ?: channels.firstOrNull(),
+            channel = detailChannel,
+            player = exoPlayer,
+            showVideo = detailChannel != null && playingKey == detailChannel.key &&
+                !playerState.buffering && playerState.error == null,
             epg = ui.epg,
             now = now,
             formatTime = formatTime,
@@ -273,6 +318,7 @@ fun HomeScreen(vm: MainViewModel) {
 @Composable
 private fun ChannelRow(
     channel: Channel,
+    playing: Boolean,
     epg: EpgData,
     now: Long,
     isPlaying: Boolean,
@@ -283,11 +329,12 @@ private fun ChannelRow(
 ) {
     val (current, _) = remember(epg, channel.key, now / 60_000) { epg.nowAndNext(channel.key, now) }
     ListItem(
-        selected = isPlaying,
+        selected = isPlaying && playing,
         onClick = onClick,
         onLongClick = onLongClick,
         modifier = modifier,
         scale = ListItemDefaults.scale(focusedScale = 1.02f),
+        glow = appListItemGlow(),
         leadingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -325,6 +372,8 @@ private fun ChannelRow(
 @Composable
 private fun ChannelDetails(
     channel: Channel?,
+    player: ExoPlayer?,
+    showVideo: Boolean,
     epg: EpgData,
     now: Long,
     formatTime: (Long) -> String,
@@ -339,7 +388,24 @@ private fun ChannelDetails(
         if (channel == null) return@Surface
         val (current, next) = remember(epg, channel.key, now / 60_000) { epg.nowAndNext(channel.key, now) }
         Column(Modifier.padding(20.dp)) {
-            ChannelLogo(channel, modifier = Modifier.fillMaxWidth(), size = 96.dp)
+            // 16:9 preview box: live video of the focused channel, its logo until the video starts.
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Black),
+            ) {
+                if (player != null) VideoSurface(player, Modifier.fillMaxSize())
+                if (!showVideo) {
+                    Box(
+                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        ChannelLogo(channel, modifier = Modifier.fillMaxWidth(0.6f), size = 80.dp)
+                    }
+                }
+            }
             Spacer(Modifier.height(16.dp))
             Text(
                 "${channel.number}  ${channel.name}",

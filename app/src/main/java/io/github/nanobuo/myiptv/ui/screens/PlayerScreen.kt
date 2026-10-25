@@ -3,7 +3,6 @@
 package io.github.nanobuo.myiptv.ui.screens
 
 import android.view.KeyEvent as AndroidKeyEvent
-import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -14,6 +13,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.runtime.produceState
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +39,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -43,7 +48,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -66,20 +70,14 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Icon
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.ListItemDefaults
@@ -92,12 +90,17 @@ import io.github.nanobuo.myiptv.data.Channel
 import io.github.nanobuo.myiptv.data.EpgData
 import io.github.nanobuo.myiptv.player.PlayerUiState
 import io.github.nanobuo.myiptv.player.TrackOption
+import io.github.nanobuo.myiptv.player.StreamStats
 import io.github.nanobuo.myiptv.ui.MainViewModel
+import io.github.nanobuo.myiptv.ui.Screen
+import io.github.nanobuo.myiptv.ui.components.VideoSurface
+import io.github.nanobuo.myiptv.ui.theme.appListItemGlow
 import io.github.nanobuo.myiptv.ui.components.ChannelLogo
 import io.github.nanobuo.myiptv.ui.components.ProgrammeProgress
 import io.github.nanobuo.myiptv.ui.components.rememberNow
 import io.github.nanobuo.myiptv.ui.components.rememberTimeFormatter
 import kotlinx.coroutines.delay
+import java.util.Locale
 
 private enum class Overlay { None, Channels, Tracks }
 
@@ -113,39 +116,15 @@ fun PlayerScreen(vm: MainViewModel) {
     val now by rememberNow(10_000L)
     val formatTime = rememberTimeFormatter()
 
-    // Create the player when visible, release it in background.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_START -> exoPlayer = vm.player.ensurePlayer()
-                Lifecycle.Event.ON_STOP -> {
-                    vm.player.release()
-                    exoPlayer = null
-                }
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            vm.player.release()
-            exoPlayer = null
-        }
-    }
-
-    val view = LocalView.current
-    DisposableEffect(view) {
-        view.keepScreenOn = true
-        onDispose { view.keepScreenOn = false }
-    }
+    // The player instance is owned by the activity, so it survives screen changes.
+    val exoPlayer by vm.player.exoPlayer.collectAsStateWithLifecycle()
 
     var overlay by remember { mutableStateOf(Overlay.None) }
     var bannerVisible by remember { mutableStateOf(true) }
+    var statsVisible by remember { mutableStateOf(false) }
     var bannerToken by remember { mutableIntStateOf(0) }
     var numberInput by remember { mutableStateOf("") }
-    var resizeMode by rememberSaveable { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
+    var aspectMode by rememberSaveable { mutableStateOf(AspectMode.Fit) }
 
     fun showBanner() {
         bannerVisible = true
@@ -153,8 +132,8 @@ fun PlayerScreen(vm: MainViewModel) {
     }
 
     LaunchedEffect(ui.currentKey) { showBanner() }
-    LaunchedEffect(bannerToken, bannerVisible) {
-        if (bannerVisible) {
+    LaunchedEffect(bannerToken, bannerVisible, statsVisible) {
+        if (bannerVisible && !statsVisible) {
             delay(BANNER_TIMEOUT_MS)
             bannerVisible = false
         }
@@ -175,11 +154,14 @@ fun PlayerScreen(vm: MainViewModel) {
         }
     }
 
-    BackHandler(enabled = overlay != Overlay.None || numberInput.isNotEmpty() || bannerVisible) {
+    BackHandler(enabled = overlay != Overlay.None || numberInput.isNotEmpty() || bannerVisible || statsVisible) {
         when {
             overlay != Overlay.None -> overlay = Overlay.None
             numberInput.isNotEmpty() -> numberInput = ""
-            else -> bannerVisible = false
+            else -> {
+                bannerVisible = false
+                statsVisible = false
+            }
         }
     }
 
@@ -211,9 +193,11 @@ fun PlayerScreen(vm: MainViewModel) {
                             numberInput = ""
                         } else if (playerState.error != null) {
                             vm.player.retry()
-                        } else if (bannerVisible) {
-                            overlay = Overlay.Channels
+                        } else if (statsVisible) {
+                            statsVisible = false
+                            bannerVisible = false
                         } else {
+                            statsVisible = true
                             showBanner()
                         }
                     }
@@ -223,9 +207,11 @@ fun PlayerScreen(vm: MainViewModel) {
                     Key.DirectionRight, Key.Menu -> {
                         overlay = Overlay.Tracks
                     }
-                    Key.Info, Key.Guide -> {
-                        if (bannerVisible) bannerVisible = false else showBanner()
+                    Key.Info -> {
+                        statsVisible = !statsVisible
+                        if (statsVisible) showBanner() else bannerVisible = false
                     }
+                    Key.Guide -> vm.navigate(Screen.Guide)
                     Key.LastChannel -> vm.playPrevious()
                     else -> return@onKeyEvent false
                 }
@@ -234,26 +220,16 @@ fun PlayerScreen(vm: MainViewModel) {
             .focusRequester(rootFocus)
             .focusable(enabled = overlay == Overlay.None),
     ) {
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    useController = false
-                    setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
-                    setKeepContentOnPlayerReset(true)
-                    isFocusable = false
-                    isFocusableInTouchMode = false
-                    descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
-                    setBackgroundColor(android.graphics.Color.BLACK)
-                    setShutterBackgroundColor(android.graphics.Color.BLACK)
-                }
-            },
-            update = { playerView ->
-                playerView.player = exoPlayer
-                playerView.resizeMode = resizeMode
-            },
-            onRelease = { it.player = null },
-            modifier = Modifier.fillMaxSize(),
-        )
+        FullScreenVideo(exoPlayer, aspectMode, playerState.videoAspect)
+
+        AnimatedVisibility(
+            visible = statsVisible && overlay == Overlay.None,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopEnd),
+        ) {
+            StatsPanel(vm)
+        }
 
         val error = playerState.error
         if (error != null) {
@@ -327,10 +303,14 @@ fun PlayerScreen(vm: MainViewModel) {
         ) {
             TrackPanel(
                 state = playerState,
-                resizeMode = resizeMode,
+                aspectMode = aspectMode,
                 onAudio = { vm.player.selectAudio(it) },
                 onText = { vm.player.selectText(it) },
-                onResize = { resizeMode = it },
+                onAspect = { aspectMode = it },
+                onGuide = {
+                    overlay = Overlay.None
+                    vm.navigate(Screen.Guide)
+                },
                 onClose = { overlay = Overlay.None },
             )
         }
@@ -557,6 +537,7 @@ private fun ChannelListPanel(
                             onLongClick = { onToggleFavorite(ch) },
                             modifier = if (requester != null) Modifier.focusRequester(requester) else Modifier,
                             scale = ListItemDefaults.scale(focusedScale = 1.02f),
+                            glow = appListItemGlow(),
                             leadingContent = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
@@ -592,10 +573,11 @@ private fun ChannelListPanel(
 @Composable
 private fun TrackPanel(
     state: PlayerUiState,
-    resizeMode: Int,
+    aspectMode: AspectMode,
     onAudio: (TrackOption) -> Unit,
     onText: (TrackOption?) -> Unit,
-    onResize: (Int) -> Unit,
+    onAspect: (AspectMode) -> Unit,
+    onGuide: () -> Unit,
     onClose: () -> Unit,
 ) {
     val firstRequester = remember { FocusRequester() }
@@ -603,11 +585,6 @@ private fun TrackPanel(
         withFrameNanos { }
         runCatching { firstRequester.requestFocus() }
     }
-    val resizeOptions = listOf(
-        AspectRatioFrameLayout.RESIZE_MODE_FIT to R.string.aspect_fit,
-        AspectRatioFrameLayout.RESIZE_MODE_FILL to R.string.aspect_fill,
-        AspectRatioFrameLayout.RESIZE_MODE_ZOOM to R.string.aspect_zoom,
-    )
     Surface(
         modifier = Modifier
             .width(420.dp)
@@ -629,16 +606,24 @@ private fun TrackPanel(
             contentPadding = PaddingValues(vertical = 24.dp, horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
+            item {
+                OptionRow(
+                    label = stringResource(R.string.tv_guide),
+                    selected = false,
+                    onClick = onGuide,
+                    icon = Icons.Default.CalendarMonth,
+                    modifier = Modifier.focusRequester(firstRequester),
+                )
+            }
             item { SectionTitle(Icons.Default.Audiotrack, stringResource(R.string.audio)) }
             if (state.audioTracks.isEmpty()) {
-                item { OptionRow(stringResource(R.string.no_tracks), selected = false, onClick = {}, modifier = Modifier.focusRequester(firstRequester)) }
+                item { OptionRow(stringResource(R.string.no_tracks), selected = false, onClick = {}) }
             }
-            itemsIndexed(state.audioTracks) { index, track ->
+            itemsIndexed(state.audioTracks) { _, track ->
                 OptionRow(
                     label = track.label,
                     selected = track.selected,
                     onClick = { onAudio(track) },
-                    modifier = if (index == 0) Modifier.focusRequester(firstRequester) else Modifier,
                 )
             }
             item { SectionTitle(Icons.Default.Subtitles, stringResource(R.string.subtitles)) }
@@ -649,9 +634,9 @@ private fun TrackPanel(
                 OptionRow(track.label, selected = state.textEnabled && track.selected, onClick = { onText(track) })
             }
             item { SectionTitle(Icons.Default.AspectRatio, stringResource(R.string.aspect_ratio)) }
-            resizeOptions.forEach { (mode, label) ->
+            AspectMode.entries.forEach { mode ->
                 item {
-                    OptionRow(stringResource(label), selected = resizeMode == mode, onClick = { onResize(mode) })
+                    OptionRow(stringResource(mode.label), selected = aspectMode == mode, onClick = { onAspect(mode) })
                 }
             }
         }
@@ -671,12 +656,24 @@ private fun SectionTitle(icon: ImageVector, text: String) {
 }
 
 @Composable
-private fun OptionRow(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun OptionRow(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+) {
     ListItem(
         selected = selected,
         onClick = onClick,
         modifier = modifier,
         scale = ListItemDefaults.scale(focusedScale = 1.02f),
+        glow = appListItemGlow(),
+        leadingContent = if (icon != null) {
+            { Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) }
+        } else {
+            null
+        },
         headlineContent = { Text(label, maxLines = 2, overflow = TextOverflow.Ellipsis) },
         trailingContent = if (selected) {
             { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(20.dp)) }
@@ -684,4 +681,117 @@ private fun OptionRow(label: String, selected: Boolean, onClick: () -> Unit, mod
             null
         },
     )
+}
+
+/** Picture formats. Most channels are already 16:9, so stretch and zoom act on top of that. */
+enum class AspectMode(val label: Int) {
+    Fit(R.string.aspect_fit),
+    Stretch(R.string.aspect_fill),
+    Zoom(R.string.aspect_zoom),
+}
+
+@Composable
+private fun FullScreenVideo(player: ExoPlayer?, mode: AspectMode, videoAspect: Float) {
+    BoxWithConstraints(Modifier.fillMaxSize().clipToBounds(), contentAlignment = Alignment.Center) {
+        val screenAspect = if (maxHeight.value > 0f) maxWidth.value / maxHeight.value else 16f / 9f
+        // Videos with the same shape as the screen would look identical in every mode:
+        // for them stretch removes side bars (4:3 inside 16:9) and zoom crops black borders.
+        val sameShape = videoAspect <= 0f || kotlin.math.abs(videoAspect - screenAspect) < 0.1f
+        val (resize, scaleX, scaleY) = when (mode) {
+            AspectMode.Fit -> Triple(AspectRatioFrameLayout.RESIZE_MODE_FIT, 1f, 1f)
+            AspectMode.Stretch -> if (sameShape) {
+                Triple(AspectRatioFrameLayout.RESIZE_MODE_FILL, 4f / 3f, 1f)
+            } else {
+                Triple(AspectRatioFrameLayout.RESIZE_MODE_FILL, 1f, 1f)
+            }
+            AspectMode.Zoom -> if (sameShape) {
+                Triple(AspectRatioFrameLayout.RESIZE_MODE_FIT, 4f / 3f, 4f / 3f)
+            } else {
+                Triple(AspectRatioFrameLayout.RESIZE_MODE_ZOOM, 1f, 1f)
+            }
+        }
+        VideoSurface(
+            player = player,
+            resizeMode = resize,
+            modifier = Modifier.requiredSize(maxWidth * scaleX, maxHeight * scaleY),
+        )
+    }
+}
+
+@Composable
+private fun StatsPanel(vm: MainViewModel) {
+    val stats by produceState<StreamStats?>(initialValue = vm.player.stats()) {
+        while (true) {
+            value = vm.player.stats()
+            delay(1_000)
+        }
+    }
+    val s = stats ?: return
+    val rows = buildList {
+        add(stringResource(R.string.stat_stream) to (s.streamType + (s.variants?.let { " · ${stringResource(R.string.stat_variants, it)}" } ?: "")))
+        s.resolution?.let { res ->
+            add(stringResource(R.string.stat_resolution) to listOfNotNull(res, s.frameRate?.let { "%.2f fps".format(Locale.US, it).replace(".00", "") }, s.hdr).joinToString(" · "))
+        }
+        s.videoCodec?.let { add(stringResource(R.string.stat_video) to it) }
+        s.videoBitrate?.let { add(stringResource(R.string.stat_video_bitrate) to formatBitrate(it.toLong())) }
+        val audio = listOfNotNull(
+            s.audioCodec,
+            s.audioChannels?.let { channelsLabel(it) },
+            s.audioSampleRate?.let { "${it / 1000.0} kHz".replace(".0 ", " ") },
+            s.audioBitrate?.let { formatBitrate(it.toLong()) },
+            s.audioLanguage,
+        )
+        if (audio.isNotEmpty()) add(stringResource(R.string.stat_audio) to audio.joinToString(" · "))
+        add(stringResource(R.string.stat_speed) to formatBitrate(s.bandwidth))
+        add(stringResource(R.string.stat_buffer) to "%.1f s".format(Locale.US, s.bufferMs / 1000f))
+        s.liveOffsetMs?.let { add(stringResource(R.string.stat_live_offset) to "%.1f s".format(Locale.US, it / 1000f)) }
+        add(stringResource(R.string.stat_dropped) to s.droppedFrames.toString())
+        s.videoDecoder?.let { add(stringResource(R.string.stat_decoder) to it) }
+    }
+    Surface(
+        modifier = Modifier.padding(24.dp).width(460.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = SurfaceDefaults.colors(containerColor = Color.Black.copy(alpha = 0.72f), contentColor = Color.White),
+    ) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+            Text(
+                stringResource(R.string.stats_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(8.dp))
+            rows.forEach { (label, value) ->
+                Row(Modifier.padding(vertical = 2.dp)) {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier.width(130.dp),
+                    )
+                    Text(
+                        value,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatBitrate(bps: Long): String = when {
+    bps <= 0 -> "–"
+    bps >= 1_000_000 -> "%.1f Mbps".format(Locale.US, bps / 1_000_000f)
+    else -> "${bps / 1000} kbps"
+}
+
+private fun channelsLabel(count: Int): String = when (count) {
+    1 -> "Mono"
+    2 -> "Stereo"
+    6 -> "5.1"
+    8 -> "7.1"
+    else -> "$count ch"
 }

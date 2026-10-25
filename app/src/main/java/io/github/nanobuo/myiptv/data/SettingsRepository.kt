@@ -27,6 +27,7 @@ data class AppSettings(
     val autoUpdateCheck: Boolean = true,
     val preferredAudio: String = AUDIO_SYSTEM,
     val themeColor: String = THEME_DYNAMIC,
+    val themeMode: String = MODE_DARK,
     val lastUpdateCheck: Long = 0L,
 ) {
     val activePlaylist: PlaylistSource?
@@ -36,6 +37,8 @@ data class AppSettings(
         const val AUDIO_SYSTEM = "system"
         const val AUDIO_ORIGINAL = "original"
         const val THEME_DYNAMIC = "dynamic"
+        const val MODE_DARK = "dark"
+        const val MODE_LIGHT = "light"
     }
 }
 
@@ -55,6 +58,7 @@ class SettingsRepository(private val context: Context) {
             autoUpdateCheck = p[AUTO_UPDATE] ?: true,
             preferredAudio = p[PREFERRED_AUDIO] ?: AppSettings.AUDIO_SYSTEM,
             themeColor = p[THEME_COLOR] ?: AppSettings.THEME_DYNAMIC,
+            themeMode = p[THEME_MODE] ?: AppSettings.MODE_DARK,
             lastUpdateCheck = p[LAST_UPDATE_CHECK] ?: 0L,
         )
     }
@@ -88,6 +92,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setAutoUpdateCheck(value: Boolean) = context.dataStore.edit { it[AUTO_UPDATE] = value }
     suspend fun setPreferredAudio(value: String) = context.dataStore.edit { it[PREFERRED_AUDIO] = value }
     suspend fun setThemeColor(value: String) = context.dataStore.edit { it[THEME_COLOR] = value }
+    suspend fun setThemeMode(value: String) = context.dataStore.edit { it[THEME_MODE] = value }
     suspend fun setLastUpdateCheck(value: Long) = context.dataStore.edit { it[LAST_UPDATE_CHECK] = value }
 
     private fun decodePlaylists(p: Preferences): List<PlaylistSource> =
@@ -103,6 +108,7 @@ class SettingsRepository(private val context: Context) {
         val AUTO_UPDATE = booleanPreferencesKey("auto_update")
         val PREFERRED_AUDIO = stringPreferencesKey("preferred_audio")
         val THEME_COLOR = stringPreferencesKey("theme_color")
+        val THEME_MODE = stringPreferencesKey("theme_mode")
         val LAST_UPDATE_CHECK = longPreferencesKey("last_update_check")
     }
 }

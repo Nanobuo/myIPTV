@@ -39,7 +39,7 @@
     <string name="aspect_zoom">Zoom</string>
     <string name="no_tracks">Not available</string>
     <string name="track_number">Track %1$d</string>
-    <string name="player_hint">▲▼ change channel · ◀ channel list · ▶ audio and subtitles</string>
+    <string name="player_hint">OK: info and stream stats · ▲▼ change channel · ◀ channel list · ▶ audio, format, guide</string>
     <string name="audio_tracks_count">%1$d audio</string>
     <string name="error_http">The server refused the stream (%1$s)</string>
     <string name="error_network">Network problem: check your connection</string>
@@ -126,4 +126,25 @@
     <string name="open_settings">Open settings</string>
     <string name="update_error">Update failed: %1$s</string>
     <string name="close">Close</string>
+
+    <!-- Guide, appearance, stats -->
+    <string name="tv_guide">TV guide</string>
+    <string name="guide_hint">▲▼ channels · ◀▶ programmes · OK watch</string>
+    <string name="today">Today</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="theme_mode">Appearance</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_light">Light</string>
+    <string name="stats_title">Stream information</string>
+    <string name="stat_stream">Stream</string>
+    <string name="stat_variants">%1$d qualities</string>
+    <string name="stat_resolution">Resolution</string>
+    <string name="stat_video">Video</string>
+    <string name="stat_video_bitrate">Video bitrate</string>
+    <string name="stat_audio">Audio</string>
+    <string name="stat_speed">Connection speed</string>
+    <string name="stat_buffer">Buffer</string>
+    <string name="stat_live_offset">Live delay</string>
+    <string name="stat_dropped">Dropped frames</string>
+    <string name="stat_decoder">Decoder</string>
 </resources>

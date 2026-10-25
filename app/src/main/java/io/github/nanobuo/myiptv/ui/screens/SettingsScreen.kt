@@ -20,7 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
@@ -64,6 +66,7 @@ import io.github.nanobuo.myiptv.data.SourceType
 import io.github.nanobuo.myiptv.ui.MainViewModel
 import io.github.nanobuo.myiptv.ui.Screen
 import io.github.nanobuo.myiptv.ui.theme.ThemeColor
+import io.github.nanobuo.myiptv.ui.theme.appListItemGlow
 import io.github.nanobuo.myiptv.ui.theme.supportsDynamicColor
 import io.github.nanobuo.myiptv.update.UpdateStatus
 import io.github.nanobuo.myiptv.util.LocaleHelper
@@ -161,6 +164,15 @@ fun SettingsScreen(vm: MainViewModel) {
             }
 
             item { Header(stringResource(R.string.section_appearance)) }
+            item {
+                val light = s.themeMode == AppSettings.MODE_LIGHT
+                SettingRow(
+                    icon = if (light) Icons.Default.LightMode else Icons.Default.DarkMode,
+                    title = stringResource(R.string.theme_mode),
+                    subtitle = stringResource(if (light) R.string.theme_light else R.string.theme_dark),
+                    onClick = { vm.setThemeMode(if (light) AppSettings.MODE_DARK else AppSettings.MODE_LIGHT) },
+                )
+            }
             item {
                 val current = ThemeColor.from(s.themeColor).let { if (it in themeOptions) it else ThemeColor.BLUE }
                 SettingRow(
@@ -295,6 +307,7 @@ fun SettingRow(
         onClick = onClick,
         modifier = modifier,
         scale = ListItemDefaults.scale(focusedScale = 1.02f),
+        glow = appListItemGlow(),
         leadingContent = { Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp)) },
         headlineContent = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         supportingContent = if (subtitle != null) {

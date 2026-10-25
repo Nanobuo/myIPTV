@@ -14,10 +14,13 @@ in ordine, con la guida TV sempre a portata di mano.
   salvato sul dispositivo o su una chiavetta USB. Puoi salvarne più di una e passare dall'una all'altra.
 - 🔢 **Canali in ordine di numero** – i canali sono mostrati con la loro numerazione (LCN), come su un televisore.
 - ⬆️⬇️ **Cambio canale con le frecce** – durante la visione, premi su e giù per passare al canale successivo o precedente.
-- 🗓️ **Guida TV (EPG)** – vedi cosa va in onda adesso e cosa c'è dopo, con una barra che indica quanto manca alla fine.
+- 🗓️ **Guida TV (EPG)** – vedi cosa va in onda adesso e cosa c'è dopo, oppure sfoglia la guida completa a griglia
+  mentre il canale che stavi guardando continua in un riquadro in alto a sinistra.
+- 👀 **Anteprima dal vivo** – scorrendo la lista, il canale selezionato parte in anteprima nel riquadro in alto a destra.
+- 📊 **Informazioni sullo streaming** – risoluzione, formato video e audio, velocità della connessione e altro.
 - 🔊 **Più tracce audio e sottotitoli** – se un canale trasmette in più lingue puoi scegliere quella che preferisci.
 - ⭐ **Preferiti** – tieni premuto OK su un canale per aggiungerlo ai preferiti.
-- 🎨 **Grafica moderna** – stile *Material You*, con colori che puoi personalizzare.
+- 🎨 **Grafica moderna** – stile *Material You*, con tema scuro o chiaro e colori che puoi personalizzare.
 - 🔄 **Aggiornamenti automatici** – l'app ti avvisa quando esce una nuova versione e si aggiorna da sola.
 - 🌍 **Italiano e inglese** – l'app segue la lingua del dispositivo, ma puoi cambiarla dalle impostazioni.
 
@@ -41,8 +44,9 @@ in ordine, con la guida TV sempre a portata di mano.
 | Tasto | Cosa fa |
 |---|---|
 | ⬆️ ⬇️ | Scorri i canali |
-| ⬅️ | Vai ai gruppi (Tutti, Preferiti, …) |
-| **OK** | Guarda il canale |
+| ⬅️ | Vai ai gruppi (Tutti, Preferiti, …) e alla Guida TV |
+| *(fermati su un canale)* | Parte l'anteprima in alto a destra |
+| **OK** | Guarda il canale a schermo intero |
 | **OK tenuto premuto** | Aggiungi o togli dai preferiti |
 | **Indietro** | Esci dall'app |
 
@@ -51,13 +55,28 @@ in ordine, con la guida TV sempre a portata di mano.
 | Tasto | Cosa fa |
 |---|---|
 | ⬆️ / ⬇️ | Canale successivo / precedente |
-| **OK** | Mostra cosa va in onda ora e dopo (premi di nuovo per la lista canali) |
+| **OK** | Mostra cosa va in onda ora e dopo e le informazioni sullo streaming (premi di nuovo per nasconderle) |
 | ⬅️ | Apri la lista dei canali (con ⬅️ ➡️ cambi gruppo) |
-| ➡️ | Scegli audio, sottotitoli e formato dell'immagine |
+| ➡️ | Apri la Guida TV, scegli audio, sottotitoli e formato dell'immagine |
 | Tasti numerici | Vai direttamente al canale con quel numero (se il telecomando li ha) |
 | **Indietro** | Torna alla lista dei canali |
 
 > Preferisci che "su" vada al canale precedente? Puoi invertire le frecce nelle **Impostazioni**.
+
+### Nella Guida TV
+
+| Tasto | Cosa fa |
+|---|---|
+| ⬆️ ⬇️ | Scorri i canali |
+| ⬅️ ➡️ | Scorri i programmi avanti e indietro nel tempo |
+| **OK** | Guarda il canale a schermo intero |
+| **Indietro** | Chiudi la guida |
+
+### Formati immagine
+
+- **Adatta**: l'immagine originale, senza tagli.
+- **Allarga**: allarga l'immagine in orizzontale, utile per i programmi in 4:3 con le bande nere ai lati.
+- **Zoom**: ingrandisce l'immagine tagliando i bordi, utile per film con le bande nere sopra e sotto.
 
 ---
 
@@ -66,7 +85,7 @@ in ordine, con la guida TV sempre a portata di mano.
 - **Playlist**: aggiungi, modifica, aggiorna o elimina le tue playlist e scegli quella da usare.
 - **Avvia sull'ultimo canale**: all'apertura l'app riparte dall'ultimo canale che stavi guardando.
 - **Lingua audio preferita**: l'app sceglie in automatico l'audio nella lingua che preferisci, quando disponibile.
-- **Colore del tema** e **Lingua** dell'app.
+- **Aspetto** (scuro o chiaro), **Colore del tema** e **Lingua** dell'app.
 - **Aggiornamenti**: controlla se c'è una nuova versione.
 
 La prima volta che installi un aggiornamento, il televisore ti chiederà di consentire a myIPTV di installare app:

@@ -28,6 +28,7 @@ sealed interface Screen {
     data object Home : Screen
     data object Player : Screen
     data object Settings : Screen
+    data object Guide : Screen
     data class PlaylistEditor(val playlistId: String?) : Screen
 }
 
@@ -91,14 +92,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val currentScreen: Screen? get() = backStack.lastOrNull()
 
     fun navigate(screen: Screen) {
-        if (backStack.lastOrNull() != screen) backStack.add(screen)
+        val existing = backStack.indexOf(screen)
+        if (existing >= 0) {
+            // Go back to the screen already in the stack (e.g. Player → Guide → Player).
+            while (backStack.lastIndex > existing) backStack.removeAt(backStack.lastIndex)
+        } else {
+            backStack.add(screen)
+        }
     }
 
     /** Returns false when there is nothing left to go back to. */
     fun back(): Boolean {
         if (backStack.size <= 1) return false
-        val removed = backStack.removeAt(backStack.lastIndex)
-        if (removed == Screen.Player) player.stop()
+        backStack.removeAt(backStack.lastIndex)
         return true
     }
 
@@ -211,13 +217,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- Playback ---------------------------------------------------------------------------
 
+    /** Plays [channel] full screen. If it is already playing (e.g. as a preview) it is not restarted. */
     fun playChannel(channel: Channel) {
         val current = _ui.value.currentKey
         if (current != channel.key) previousKey = current
         _ui.update { it.copy(currentKey = channel.key) }
-        player.play(channel)
+        if (player.playingKey.value != channel.key) player.play(channel)
         viewModelScope.launch { settingsRepo.setLastChannel(channel.key) }
         navigate(Screen.Player)
+    }
+
+    /** Plays [channel] in a small preview without leaving the current screen. */
+    fun preview(channel: Channel) {
+        if (player.playingKey.value == channel.key) return
+        _ui.update { it.copy(currentKey = channel.key) }
+        player.play(channel)
+    }
+
+    fun stopPlayback() {
+        if (player.playingKey.value != null) player.stop()
     }
 
     /** Moves by [delta] positions in the LCN-sorted channel list, wrapping around. */
@@ -252,6 +270,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setStartOnLastChannel(value: Boolean) = viewModelScope.launch { settingsRepo.setStartOnLastChannel(value) }
     fun setAutoUpdateCheck(value: Boolean) = viewModelScope.launch { settingsRepo.setAutoUpdateCheck(value) }
     fun setThemeColor(value: String) = viewModelScope.launch { settingsRepo.setThemeColor(value) }
+    fun setThemeMode(value: String) = viewModelScope.launch { settingsRepo.setThemeMode(value) }
 
     fun setPreferredAudio(value: String) = viewModelScope.launch {
         settingsRepo.setPreferredAudio(value)
