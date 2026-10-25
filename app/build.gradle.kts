@@ -18,7 +18,7 @@ val keystorePath = System.getenv("MYIPTV_KEYSTORE") ?: keystoreProps.getProperty
 
 android {
     namespace = "io.github.nanobuo.myiptv"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.nanobuo.myiptv"
