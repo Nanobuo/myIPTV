@@ -6,8 +6,6 @@
 È pensata per essere usata comodamente con il telecomando: niente menu complicati, solo i tuoi canali,
 in ordine, con la guida TV sempre a portata di mano.
 
-> 🇬🇧 *myIPTV is an IPTV player for Android TV / Google TV. The app is available in Italian and English.*
-
 ---
 
 ## Cosa sa fare
@@ -22,25 +20,6 @@ in ordine, con la guida TV sempre a portata di mano.
 - 🎨 **Grafica moderna** – stile *Material You*, con colori che puoi personalizzare.
 - 🔄 **Aggiornamenti automatici** – l'app ti avvisa quando esce una nuova versione e si aggiorna da sola.
 - 🌍 **Italiano e inglese** – l'app segue la lingua del dispositivo, ma puoi cambiarla dalle impostazioni.
-
----
-
-## Come installarla
-
-L'app non è sul Play Store: va installata scaricando il file dell'app (APK). Si fa una volta sola,
-poi gli aggiornamenti arrivano direttamente dall'app.
-
-1. **Abilita le installazioni da fonti esterne**
-   - Sul televisore vai in *Impostazioni → Sistema → Informazioni*, scorri fino a **Build del sistema operativo Android TV**
-     e premi OK **7 volte**: comparirà il messaggio "Ora sei uno sviluppatore".
-2. **Installa l'app "Downloader"** dal Play Store (è gratuita).
-3. Apri **Downloader** e scrivi questo indirizzo:
-   ```
-   https://github.com/Nanobuo/myIPTV/releases/latest
-   ```
-   poi scegli il file che finisce con **.apk**.
-4. Quando richiesto, consenti a Downloader di installare app e conferma l'installazione.
-5. Fatto! Trovi **myIPTV** tra le tue app.
 
 ---
 
