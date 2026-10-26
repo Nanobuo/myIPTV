@@ -146,4 +146,6 @@
     <string name="stat_dropped">Fotogrammi persi</string>
     <string name="stat_decoder">Decoder</string>
     <string name="groups">Gruppi</string>
+    <string name="info">Info</string>
+    <string name="no_description">Nessuna descrizione disponibile</string>
 </resources>

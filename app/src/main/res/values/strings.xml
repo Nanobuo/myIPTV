@@ -148,4 +148,6 @@
     <string name="stat_dropped">Dropped frames</string>
     <string name="stat_decoder">Decoder</string>
     <string name="groups">Groups</string>
+    <string name="info">Info</string>
+    <string name="no_description">No description available</string>
 </resources>

@@ -55,7 +55,7 @@ in ordine, con la guida TV sempre a portata di mano.
 | Tasto | Cosa fa |
 |---|---|
 | ⬆️ / ⬇️ | Canale successivo / precedente |
-| **OK** | Mostra cosa va in onda e i comandi: **Audio**, **Sottotitoli**, **Formato** e **Guida TV** (scegli con ⬅️ ➡️ e OK) |
+| **OK** | Mostra cosa va in onda e i comandi: **Guida TV** e **Info** (descrizione del programma) a sinistra, **Audio**, **Sottotitoli** e **Formato** a destra (scegli con ⬅️ ➡️ e OK) |
 | ⬅️ | Apri la lista dei canali (con ⬅️ ➡️ cambi gruppo) |
 | ➡️ | Mostra o nasconde le informazioni sullo streaming (risoluzione, formato, velocità…) |
 | Tasti numerici | Vai direttamente al canale con quel numero (se il telecomando li ha) |

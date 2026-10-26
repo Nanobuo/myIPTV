@@ -44,6 +44,12 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material3.CircularProgressIndicator
@@ -105,11 +111,12 @@ import io.github.nanobuo.myiptv.ui.components.rememberTimeFormatter
 import kotlinx.coroutines.delay
 import java.util.Locale
 
-private enum class Overlay { None, Channels, Audio, Subtitles, Aspect }
+private enum class Overlay { None, Channels, Audio, Subtitles, Aspect, Info }
 
 /** Buttons shown in the player controls, in order. */
 private enum class Control(val label: Int, val icon: ImageVector) {
     Guide(R.string.tv_guide, Icons.Default.CalendarMonth),
+    Info(R.string.info, Icons.Default.Info),
     Audio(R.string.audio, Icons.Default.Audiotrack),
     Subtitles(R.string.subtitles, Icons.Default.Subtitles),
     Aspect(R.string.aspect_ratio, Icons.Default.AspectRatio),
@@ -199,6 +206,7 @@ fun PlayerScreen(vm: MainViewModel) {
             Control.Audio -> overlay = Overlay.Audio
             Control.Subtitles -> overlay = Overlay.Subtitles
             Control.Aspect -> overlay = Overlay.Aspect
+            Control.Info -> overlay = Overlay.Info
             Control.Guide -> {
                 controlsVisible = false
                 vm.navigate(Screen.Guide)
@@ -370,6 +378,23 @@ fun PlayerScreen(vm: MainViewModel) {
                 },
                 onToggleFavorite = { vm.toggleFavorite(it) },
             )
+        }
+
+        AnimatedVisibility(
+            visible = overlay == Overlay.Info && channel != null,
+            enter = slideInHorizontally { it } + fadeIn(),
+            exit = slideOutHorizontally { it } + fadeOut(),
+            modifier = Modifier.align(Alignment.CenterEnd),
+        ) {
+            if (channel != null) {
+                ProgrammeInfoPanel(
+                    channel = channel,
+                    epg = ui.epg,
+                    now = now,
+                    formatTime = formatTime,
+                    onClose = { overlay = Overlay.None },
+                )
+            }
         }
 
         AnimatedVisibility(
@@ -670,9 +695,13 @@ private fun PlayerControls(
     onFocus: (Control) -> Unit,
     onClick: (Control) -> Unit,
 ) {
-    // Guide on its own on the left, playback options grouped on the right.
+    // Guide and programme info on the left, playback options grouped on the right.
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        ControlButton(Control.Guide, stringResource(Control.Guide.label), requesters, onFocus, onClick)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(Control.Guide, Control.Info).forEach { control ->
+                ControlButton(control, stringResource(control.label), requesters, onFocus, onClick)
+            }
+        }
         Spacer(Modifier.weight(1f))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(Control.Audio, Control.Subtitles, Control.Aspect).forEach { control ->
@@ -709,6 +738,95 @@ private fun ControlButton(
         Icon(control.icon, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
         Text(label, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+/** Details of the programme on air (and the next one). ▲▼ scroll, ◀ or Back close. */
+@Composable
+private fun ProgrammeInfoPanel(
+    channel: Channel,
+    epg: EpgData,
+    now: Long,
+    formatTime: (Long) -> String,
+    onClose: () -> Unit,
+) {
+    val (current, next) = remember(epg, channel.key, now / 30_000) { epg.nowAndNext(channel.key, now) }
+    val scroll = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    val requester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        runCatching { requester.requestFocus() }
+    }
+    Surface(
+        modifier = Modifier
+            .width(520.dp)
+            .fillMaxHeight()
+            .focusRequester(requester)
+            .onKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                when (event.key) {
+                    Key.DirectionUp -> scope.launch { scroll.animateScrollBy(-240f) }
+                    Key.DirectionDown -> scope.launch { scroll.animateScrollBy(240f) }
+                    Key.DirectionLeft, Key.DirectionCenter, Key.Enter -> onClose()
+                    Key.DirectionRight -> Unit
+                    else -> return@onKeyEvent false
+                }
+                true
+            }
+            .focusable(),
+        shape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp),
+        colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f), contentColor = MaterialTheme.colorScheme.onSurface),
+    ) {
+        Column(Modifier.verticalScroll(scroll).padding(28.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ChannelLogo(channel, modifier = Modifier.width(72.dp), size = 44.dp)
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    "${channel.number}  ${channel.name}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+            if (current == null) {
+                Text(stringResource(R.string.no_epg), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Text(stringResource(R.string.now_playing).uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(current.title, style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    stringResource(R.string.time_range, formatTime(current.start), formatTime(current.stop)) +
+                        "  ·  " + stringResource(R.string.minutes_left, ((current.stop - now) / 60_000).toInt().coerceAtLeast(0)) +
+                        (current.category?.let { "  ·  $it" } ?: ""),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                ProgrammeProgress(current.progressAt(now), Modifier.fillMaxWidth())
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    current.description ?: stringResource(R.string.no_description),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (current.description != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (next != null) {
+                Spacer(Modifier.height(24.dp))
+                Text(stringResource(R.string.up_next).uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(next.title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(R.string.time_range, formatTime(next.start), formatTime(next.stop)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                next.description?.let {
+                    Spacer(Modifier.height(6.dp))
+                    Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 4, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
     }
 }
 
