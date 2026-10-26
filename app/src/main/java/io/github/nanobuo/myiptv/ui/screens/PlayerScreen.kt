@@ -764,11 +764,16 @@ private fun ProgrammeInfoPanel(
             .fillMaxHeight()
             .focusRequester(requester)
             .onKeyEvent { event ->
+                // OK closes on release, so the release does not reach the Info button again.
+                if (event.key == Key.DirectionCenter || event.key == Key.Enter) {
+                    if (event.type == KeyEventType.KeyUp) onClose()
+                    return@onKeyEvent true
+                }
                 if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
                 when (event.key) {
                     Key.DirectionUp -> scope.launch { scroll.animateScrollBy(-240f) }
                     Key.DirectionDown -> scope.launch { scroll.animateScrollBy(240f) }
-                    Key.DirectionLeft, Key.DirectionCenter, Key.Enter -> onClose()
+                    Key.DirectionLeft -> onClose()
                     Key.DirectionRight -> Unit
                     else -> return@onKeyEvent false
                 }
