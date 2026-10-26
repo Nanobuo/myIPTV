@@ -109,10 +109,10 @@ private enum class Overlay { None, Channels, Audio, Subtitles, Aspect }
 
 /** Buttons shown in the player controls, in order. */
 private enum class Control(val label: Int, val icon: ImageVector) {
+    Guide(R.string.tv_guide, Icons.Default.CalendarMonth),
     Audio(R.string.audio, Icons.Default.Audiotrack),
     Subtitles(R.string.subtitles, Icons.Default.Subtitles),
     Aspect(R.string.aspect_ratio, Icons.Default.AspectRatio),
-    Guide(R.string.tv_guide, Icons.Default.CalendarMonth),
 }
 
 private const val BANNER_TIMEOUT_MS = 5_000L
@@ -137,7 +137,7 @@ fun PlayerScreen(vm: MainViewModel) {
     var controlsVisible by remember { mutableStateOf(false) }
     var centerPressed by remember { mutableStateOf(false) }
     var controlsToken by remember { mutableIntStateOf(0) }
-    var lastControl by remember { mutableStateOf(Control.Audio) }
+    var lastControl by remember { mutableStateOf(Control.Guide) }
     val controlRequesters = remember { Control.entries.associateWith { FocusRequester() } }
     var bannerToken by remember { mutableIntStateOf(0) }
     var numberInput by remember { mutableStateOf("") }
@@ -670,29 +670,45 @@ private fun PlayerControls(
     onFocus: (Control) -> Unit,
     onClick: (Control) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Control.entries.forEach { control ->
-            Button(
-                onClick = { onClick(control) },
-                modifier = Modifier
-                    .focusRequester(requesters.getValue(control))
-                    .onFocusChanged { if (it.isFocused) onFocus(control) },
-                colors = ButtonDefaults.colors(
-                    containerColor = Color.White.copy(alpha = 0.14f),
-                    contentColor = Color.White,
-                    focusedContainerColor = Color.White,
-                    focusedContentColor = Color.Black,
-                ),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            ) {
-                Icon(control.icon, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (control == Control.Aspect) stringResource(aspectMode.label) else stringResource(control.label),
-                    style = MaterialTheme.typography.labelLarge,
-                )
+    // Guide on its own on the left, playback options grouped on the right.
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        ControlButton(Control.Guide, stringResource(Control.Guide.label), requesters, onFocus, onClick)
+        Spacer(Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(Control.Audio, Control.Subtitles, Control.Aspect).forEach { control ->
+                val label = if (control == Control.Aspect) stringResource(aspectMode.label) else stringResource(control.label)
+                ControlButton(control, label, requesters, onFocus, onClick)
             }
         }
+    }
+}
+
+@Composable
+private fun ControlButton(
+    control: Control,
+    label: String,
+    requesters: Map<Control, FocusRequester>,
+    onFocus: (Control) -> Unit,
+    onClick: (Control) -> Unit,
+) {
+    Button(
+        onClick = { onClick(control) },
+        modifier = Modifier
+            .height(32.dp)
+            .focusRequester(requesters.getValue(control))
+            .onFocusChanged { if (it.isFocused) onFocus(control) },
+        colors = ButtonDefaults.colors(
+            containerColor = Color.White.copy(alpha = 0.14f),
+            contentColor = Color.White,
+            focusedContainerColor = Color.White,
+            focusedContentColor = Color.Black,
+        ),
+        scale = ButtonDefaults.scale(focusedScale = 1.06f),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+    ) {
+        Icon(control.icon, contentDescription = null, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium)
     }
 }
 
