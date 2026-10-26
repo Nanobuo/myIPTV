@@ -135,6 +135,7 @@ fun PlayerScreen(vm: MainViewModel) {
     var bannerVisible by remember { mutableStateOf(true) }
     var statsVisible by remember { mutableStateOf(false) }
     var controlsVisible by remember { mutableStateOf(false) }
+    var centerPressed by remember { mutableStateOf(false) }
     var controlsToken by remember { mutableIntStateOf(0) }
     var lastControl by remember { mutableStateOf(Control.Audio) }
     val controlRequesters = remember { Control.entries.associateWith { FocusRequester() } }
@@ -218,6 +219,26 @@ fun PlayerScreen(vm: MainViewModel) {
             }
             .onKeyEvent { event ->
                 if (overlay != Overlay.None) return@onKeyEvent false
+                val isCenter = event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter
+                if (isCenter && !controlsVisible) {
+                    // OK acts on release: acting on press would let the release "click" the
+                    // first control button that just received focus. A release without a press
+                    // seen here (e.g. coming from the guide) is ignored.
+                    if (event.type == KeyEventType.KeyDown) {
+                        centerPressed = true
+                    } else if (event.type == KeyEventType.KeyUp && centerPressed) {
+                        centerPressed = false
+                        if (numberInput.isNotEmpty()) {
+                            numberInput.toIntOrNull()?.let { vm.playNumber(it) }
+                            numberInput = ""
+                        } else if (playerState.error != null) {
+                            vm.player.retry()
+                        } else {
+                            controlsVisible = true
+                        }
+                    }
+                    return@onKeyEvent true
+                }
                 if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
                 if (controlsVisible) {
                     // With the controls open ◀▶ move between buttons, ▲▼ still change channel.
@@ -246,16 +267,6 @@ fun PlayerScreen(vm: MainViewModel) {
                     Key.DirectionDown -> vm.zap(if (invert) 1 else -1)
                     Key.ChannelUp -> vm.zap(1)
                     Key.ChannelDown -> vm.zap(-1)
-                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
-                        if (numberInput.isNotEmpty()) {
-                            numberInput.toIntOrNull()?.let { vm.playNumber(it) }
-                            numberInput = ""
-                        } else if (playerState.error != null) {
-                            vm.player.retry()
-                        } else {
-                            controlsVisible = true
-                        }
-                    }
                     Key.DirectionLeft -> {
                         overlay = Overlay.Channels
                     }

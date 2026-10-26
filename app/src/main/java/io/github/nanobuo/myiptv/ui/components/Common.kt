@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
@@ -45,6 +46,12 @@ fun rememberTimeFormatter(): (Long) -> String {
     return remember(format) { { time: Long -> format.format(Date(time)) } }
 }
 
+/**
+ * Neutral mid-gray plate behind channel logos: dark logos and white logos both stay readable on it,
+ * over video, gradients and in both light and dark themes.
+ */
+private val LogoPlate = androidx.compose.ui.graphics.Color(0xFF8E8E93)
+
 @Composable
 fun ChannelLogo(channel: Channel, modifier: Modifier = Modifier, size: Dp = 48.dp) {
     val shape = RoundedCornerShape(8.dp)
@@ -52,7 +59,8 @@ fun ChannelLogo(channel: Channel, modifier: Modifier = Modifier, size: Dp = 48.d
         modifier = modifier
             .height(size)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+            .background(LogoPlate)
+            .padding(horizontal = 4.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center,
     ) {
         if (channel.logo != null) {
@@ -77,7 +85,7 @@ private fun LogoPlaceholder(channel: Channel) {
                 .joinToString("") { it.take(1) }.uppercase(),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = androidx.compose.ui.graphics.Color.White,
             maxLines = 1,
             overflow = TextOverflow.Clip,
         )
