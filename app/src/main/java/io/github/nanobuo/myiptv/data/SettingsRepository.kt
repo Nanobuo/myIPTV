@@ -28,6 +28,10 @@ data class AppSettings(
     val preferredAudio: String = AUDIO_SYSTEM,
     val themeColor: String = THEME_DYNAMIC,
     val themeMode: String = MODE_DARK,
+    /** Phones and tablets: continue in a small window when leaving the app during playback. */
+    val pipEnabled: Boolean = true,
+    /** Phones and tablets: keep the audio playing with the screen off or the app in background. */
+    val backgroundAudio: Boolean = true,
     val lastUpdateCheck: Long = 0L,
 ) {
     val activePlaylist: PlaylistSource?
@@ -39,6 +43,7 @@ data class AppSettings(
         const val THEME_DYNAMIC = "dynamic"
         const val MODE_DARK = "dark"
         const val MODE_LIGHT = "light"
+        const val MODE_SYSTEM = "system"
     }
 }
 
@@ -59,6 +64,8 @@ class SettingsRepository(private val context: Context) {
             preferredAudio = p[PREFERRED_AUDIO] ?: AppSettings.AUDIO_SYSTEM,
             themeColor = p[THEME_COLOR] ?: AppSettings.THEME_DYNAMIC,
             themeMode = p[THEME_MODE] ?: AppSettings.MODE_DARK,
+            pipEnabled = p[PIP_ENABLED] ?: true,
+            backgroundAudio = p[BACKGROUND_AUDIO] ?: true,
             lastUpdateCheck = p[LAST_UPDATE_CHECK] ?: 0L,
         )
     }
@@ -92,6 +99,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setAutoUpdateCheck(value: Boolean) = context.dataStore.edit { it[AUTO_UPDATE] = value }
     suspend fun setPreferredAudio(value: String) = context.dataStore.edit { it[PREFERRED_AUDIO] = value }
     suspend fun setThemeColor(value: String) = context.dataStore.edit { it[THEME_COLOR] = value }
+    suspend fun setPipEnabled(value: Boolean) = context.dataStore.edit { it[PIP_ENABLED] = value }
+    suspend fun setBackgroundAudio(value: Boolean) = context.dataStore.edit { it[BACKGROUND_AUDIO] = value }
     suspend fun setThemeMode(value: String) = context.dataStore.edit { it[THEME_MODE] = value }
     suspend fun setLastUpdateCheck(value: Long) = context.dataStore.edit { it[LAST_UPDATE_CHECK] = value }
 
@@ -109,6 +118,8 @@ class SettingsRepository(private val context: Context) {
         val PREFERRED_AUDIO = stringPreferencesKey("preferred_audio")
         val THEME_COLOR = stringPreferencesKey("theme_color")
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val PIP_ENABLED = booleanPreferencesKey("pip_enabled")
+        val BACKGROUND_AUDIO = booleanPreferencesKey("background_audio")
         val LAST_UPDATE_CHECK = longPreferencesKey("last_update_check")
     }
 }

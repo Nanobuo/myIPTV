@@ -148,4 +148,23 @@
     <string name="groups">Gruppi</string>
     <string name="info">Info</string>
     <string name="no_description">Nessuna descrizione disponibile</string>
+
+    <!-- Phones and tablets -->
+    <string name="tab_channels">Canali</string>
+    <string name="search">Cerca canale</string>
+    <string name="select_channel_hint">Tocca un canale per vederne qui l\'anteprima</string>
+    <string name="watch_fullscreen">Guarda a schermo intero</string>
+    <string name="watch_channel">Guarda il canale</string>
+    <string name="back">Indietro</string>
+    <string name="pip">Picture-in-Picture</string>
+    <string name="pip_desc">Continua a guardare in una piccola finestra quando esci dall\'app</string>
+    <string name="background_audio">Audio in sottofondo</string>
+    <string name="background_audio_desc">L\'audio continua a schermo spento o con l\'app in secondo piano</string>
+    <string name="previous_channel">Canale precedente</string>
+    <string name="next_channel">Canale successivo</string>
+    <string name="swipe_hint">Scorri in alto o in basso sul video per cambiare canale</string>
+    <string name="invert_swipe">Inverti cambio canale</string>
+    <string name="invert_swipe_desc">Scorrere verso l\'alto (o ▲ sul telecomando) va al canale precedente</string>
+    <string name="theme_system">Come il dispositivo</string>
+    <string name="choose_file">Scegli file</string>
 </resources>

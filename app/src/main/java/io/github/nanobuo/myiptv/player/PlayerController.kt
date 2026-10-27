@@ -11,6 +11,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -187,6 +188,7 @@ class PlayerController(
             )
             .setHandleAudioBecomingNoisy(true)
             .setBandwidthMeter(bandwidthMeter)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         p.addListener(listener)
         p.addAnalyticsListener(analyticsListener)
@@ -232,6 +234,17 @@ class PlayerController(
         _state.value = PlayerUiState()
         player?.stop()
         player?.clearMediaItems()
+    }
+
+    /**
+     * Turns video decoding off while only the audio is needed (app in background on phones),
+     * and back on when the video is visible again.
+     */
+    fun setVideoEnabled(enabled: Boolean) {
+        val p = player ?: return
+        p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, !enabled)
+            .build()
     }
 
     fun retry() {
@@ -444,6 +457,15 @@ class PlayerController(
         val itemBuilder = MediaItem.Builder()
             .setUri(channel.url)
             .setMediaId(channel.key)
+            .setMediaMetadata(
+                // Shown in the media notification and on the lock screen.
+                MediaMetadata.Builder()
+                    .setTitle(channel.name)
+                    .setDisplayTitle(channel.name)
+                    .setStation(channel.name)
+                    .setArtworkUri(channel.logo?.let { android.net.Uri.parse(it) })
+                    .build(),
+            )
         when (type) {
             TYPE_HLS -> itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8)
             TYPE_DASH -> itemBuilder.setMimeType(MimeTypes.APPLICATION_MPD)

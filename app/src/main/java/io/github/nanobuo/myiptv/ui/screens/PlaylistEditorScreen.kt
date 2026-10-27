@@ -275,22 +275,22 @@ private fun SourceChoice(selected: Boolean, icon: androidx.compose.ui.graphics.v
     ) { Text(label) }
 }
 
-private fun persistPermission(context: Context, uri: Uri) {
+internal fun persistPermission(context: Context, uri: Uri) {
     runCatching {
         context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 }
 
-private fun displayName(context: Context, uri: Uri): String? = runCatching {
+internal fun displayName(context: Context, uri: Uri): String? = runCatching {
     context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
         if (c.moveToFirst()) c.getString(0) else null
     }
 }.getOrNull()
 
-private fun displayLocation(context: Context, location: String): String =
+internal fun displayLocation(context: Context, location: String): String =
     if (location.startsWith("content://")) displayName(context, Uri.parse(location)) ?: location else location
 
-private fun guessName(location: String, type: SourceType): String? = when (type) {
+internal fun guessName(location: String, type: SourceType): String? = when (type) {
     SourceType.URL -> runCatching { Uri.parse(location).host }.getOrNull()
     else -> location.substringAfterLast('/').substringBeforeLast('.').takeIf { it.isNotBlank() && !it.contains(':') }
 }

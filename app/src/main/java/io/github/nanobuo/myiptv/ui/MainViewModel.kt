@@ -101,6 +101,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Phones and tablets: top-level tabs (channels, guide, settings) replace each other. */
+    fun openTab(screen: Screen) {
+        while (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+        if (backStack.firstOrNull() != Screen.Home) {
+            backStack.clear()
+            backStack.add(Screen.Home)
+        }
+        if (screen != Screen.Home) backStack.add(screen)
+    }
+
     /** Returns false when there is nothing left to go back to. */
     fun back(): Boolean {
         if (backStack.size <= 1) return false
@@ -271,6 +281,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setAutoUpdateCheck(value: Boolean) = viewModelScope.launch { settingsRepo.setAutoUpdateCheck(value) }
     fun setThemeColor(value: String) = viewModelScope.launch { settingsRepo.setThemeColor(value) }
     fun setThemeMode(value: String) = viewModelScope.launch { settingsRepo.setThemeMode(value) }
+    fun setPipEnabled(value: Boolean) = viewModelScope.launch { settingsRepo.setPipEnabled(value) }
+    fun setBackgroundAudio(value: Boolean) = viewModelScope.launch { settingsRepo.setBackgroundAudio(value) }
 
     fun setPreferredAudio(value: String) = viewModelScope.launch {
         settingsRepo.setPreferredAudio(value)

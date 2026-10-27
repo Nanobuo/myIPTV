@@ -971,7 +971,7 @@ enum class AspectMode(val label: Int) {
 }
 
 @Composable
-private fun FullScreenVideo(player: ExoPlayer?, mode: AspectMode, videoAspect: Float) {
+internal fun FullScreenVideo(player: ExoPlayer?, mode: AspectMode, videoAspect: Float) {
     BoxWithConstraints(Modifier.fillMaxSize().clipToBounds(), contentAlignment = Alignment.Center) {
         val screenAspect = if (maxHeight.value > 0f) maxWidth.value / maxHeight.value else 16f / 9f
         // Videos with the same shape as the screen would look identical in every mode:
@@ -999,7 +999,7 @@ private fun FullScreenVideo(player: ExoPlayer?, mode: AspectMode, videoAspect: F
 }
 
 @Composable
-private fun StatsPanel(vm: MainViewModel) {
+internal fun StatsPanel(vm: MainViewModel, modifier: Modifier = Modifier) {
     val stats by produceState<StreamStats?>(initialValue = vm.player.stats()) {
         while (true) {
             value = vm.player.stats()
@@ -1029,7 +1029,7 @@ private fun StatsPanel(vm: MainViewModel) {
         s.videoDecoder?.let { add(stringResource(R.string.stat_decoder) to it) }
     }
     Surface(
-        modifier = Modifier.padding(24.dp).width(460.dp),
+        modifier = modifier.padding(24.dp).width(460.dp),
         shape = RoundedCornerShape(20.dp),
         colors = SurfaceDefaults.colors(containerColor = Color.Black.copy(alpha = 0.72f), contentColor = Color.White),
     ) {

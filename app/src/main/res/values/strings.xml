@@ -150,4 +150,23 @@
     <string name="groups">Groups</string>
     <string name="info">Info</string>
     <string name="no_description">No description available</string>
+
+    <!-- Phones and tablets -->
+    <string name="tab_channels">Channels</string>
+    <string name="search">Search channel</string>
+    <string name="select_channel_hint">Tap a channel to see the preview here</string>
+    <string name="watch_fullscreen">Watch full screen</string>
+    <string name="watch_channel">Watch channel</string>
+    <string name="back">Back</string>
+    <string name="pip">Picture-in-Picture</string>
+    <string name="pip_desc">Keep watching in a small window when you leave the app</string>
+    <string name="background_audio">Background audio</string>
+    <string name="background_audio_desc">Audio keeps playing with the screen off or the app in background</string>
+    <string name="previous_channel">Previous channel</string>
+    <string name="next_channel">Next channel</string>
+    <string name="swipe_hint">Swipe up or down on the video to change channel</string>
+    <string name="invert_swipe">Invert channel change</string>
+    <string name="invert_swipe_desc">Swipe up (or ▲ on the remote) goes to the previous channel</string>
+    <string name="theme_system">Same as device</string>
+    <string name="choose_file">Choose file</string>
 </resources>
