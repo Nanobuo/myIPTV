@@ -1,7 +1,7 @@
 # myIPTV
 
 **myIPTV** è un'app per guardare i canali TV della tua playlist IPTV su **Android TV** e **Google TV**
-(per esempio *Chromecast con Google TV* e *Google TV Streamer*).
+(per esempio *Chromecast con Google TV* e *Google TV Streamer*), ma anche su **smartphone** e **tablet Android**.
 
 È pensata per essere usata comodamente con il telecomando: niente menu complicati, solo i tuoi canali,
 in ordine, con la guida TV sempre a portata di mano.
@@ -23,6 +23,22 @@ in ordine, con la guida TV sempre a portata di mano.
 - 🎨 **Grafica moderna** – stile *Material You*, con tema scuro o chiaro e colori che puoi personalizzare.
 - 🔄 **Aggiornamenti automatici** – l'app ti avvisa quando esce una nuova versione e si aggiorna da sola.
 - 🌍 **Italiano e inglese** – l'app segue la lingua del dispositivo, ma puoi cambiarla dalle impostazioni.
+
+---
+
+## Su smartphone e tablet
+
+L'app si adatta da sola: sul televisore si usa con il telecomando, su telefono e tablet con il tocco.
+
+- **Telefono**: in basso trovi le schede *Canali*, *Guida* e *Impostazioni*. Tocca un canale per guardarlo a schermo intero (il telefono passa in orizzontale).
+- **Tablet**: la lista dei canali e l'anteprima del canale selezionato sono affiancate; tocca l'anteprima per guardarlo a schermo intero.
+- **Durante la visione**:
+  - tocca lo schermo per mostrare o nascondere i comandi (Guida TV, Info, Canali, Audio, Sottotitoli, Formato, statistiche);
+  - scorri in alto o in basso sul video per cambiare canale.
+- **Picture-in-Picture**: se esci dall'app mentre guardi un canale, continua in una piccola finestra sopra le altre app.
+- **Audio in sottofondo**: con lo schermo spento l'audio continua, con i comandi nella notifica e nella schermata di blocco.
+
+Picture-in-Picture e audio in sottofondo si possono disattivare dalle **Impostazioni**.
 
 ---
 
