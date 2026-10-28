@@ -169,4 +169,5 @@
     <string name="invert_swipe_desc">Swipe up (or ▲ on the remote) goes to the previous channel</string>
     <string name="theme_system">Same as device</string>
     <string name="choose_file">Choose file</string>
+    <string name="playlist_refresh_failed">Could not update the playlist (%1$s): showing the saved copy</string>
 </resources>

@@ -95,6 +95,9 @@ class PlayerController(
     var player: ExoPlayer? = null
         private set
 
+    /** The channel being played, as it was when playback started. */
+    val currentChannel: Channel? get() = current
+
     private val _exoPlayer = MutableStateFlow<ExoPlayer?>(null)
     /** The current player instance, shared by every screen that shows video. */
     val exoPlayer: StateFlow<ExoPlayer?> = _exoPlayer.asStateFlow()

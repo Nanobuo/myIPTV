@@ -19,7 +19,6 @@ object Network {
         .readTimeout(30, TimeUnit.SECONDS)
         .followRedirects(true)
         .followSslRedirects(true)
-        .cache(okhttp3.Cache(File(context.cacheDir, "http"), 20L * 1024 * 1024))
         .build()
 
     /** Downloads [url] into [target] atomically. */
@@ -28,6 +27,9 @@ object Network {
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", userAgent?.takeIf { it.isNotBlank() } ?: defaultUserAgent)
+            // Always ask for a fresh copy: playlists and guides change without a new address.
+            .header("Cache-Control", "no-cache")
+            .header("Pragma", "no-cache")
             .build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("HTTP ${response.code}")

@@ -25,6 +25,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -154,6 +155,10 @@ private fun AppRoot(vm: MainViewModel, onExit: () -> Unit) {
     // Registered first, so screen-specific handlers take precedence.
     BackHandler {
         if (!vm.back()) onExit()
+    }
+    val toastContext = LocalContext.current
+    LaunchedEffect(vm) {
+        vm.messages.collect { android.widget.Toast.makeText(toastContext, it, android.widget.Toast.LENGTH_LONG).show() }
     }
     // The player belongs to the whole app: it keeps playing while moving between the preview,
     // the guide and full screen, and is released when the app goes to background.

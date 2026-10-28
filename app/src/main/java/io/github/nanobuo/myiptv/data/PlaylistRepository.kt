@@ -27,18 +27,12 @@ class PlaylistRepository(
         epgCache(source, 0).takeIf { it.exists() }?.let { System.currentTimeMillis() - it.lastModified() }
 
     /**
-     * Returns the playlist. With [refresh] the source is read again (downloaded for URLs);
-     * otherwise the local copy is used when available.
+     * Returns the playlist. With [refresh] the source is read again (downloaded for URLs) and
+     * a failure is reported to the caller; otherwise the local copy is used when available.
      */
     suspend fun loadPlaylist(source: PlaylistSource, refresh: Boolean): Playlist = withContext(Dispatchers.IO) {
         val cache = playlistCache(source)
-        if (refresh || !cache.exists()) {
-            try {
-                fetchPlaylist(source, cache)
-            } catch (e: Exception) {
-                if (!cache.exists()) throw e
-            }
-        }
+        if (refresh || !cache.exists()) fetchPlaylist(source, cache)
         cache.inputStream().use { input ->
             Network.maybeGunzip(input).bufferedReader().use { M3uParser.parse(it, source.userAgent) }
         }

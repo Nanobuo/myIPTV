@@ -20,6 +20,8 @@ class MyIptvApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        // Older versions kept an HTTP cache that could serve outdated playlists: remove it.
+        Thread { java.io.File(cacheDir, "http").deleteRecursively() }.start()
     }
 }
 
@@ -28,7 +30,6 @@ class AppContainer(context: Context) {
     val httpClient = Network.createClient(context)
     val settings = SettingsRepository(context)
     val playlists = PlaylistRepository(context, httpClient)
-    // Streams must never be served from the HTTP cache.
-    val player = PlayerController(context, httpClient.newBuilder().cache(null).build())
+    val player = PlayerController(context, httpClient)
     val updateManager = UpdateManager(context, httpClient)
 }

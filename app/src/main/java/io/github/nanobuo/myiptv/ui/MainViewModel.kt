@@ -13,7 +13,11 @@ import io.github.nanobuo.myiptv.data.PlaylistSource
 import io.github.nanobuo.myiptv.update.UpdateInfo
 import io.github.nanobuo.myiptv.update.UpdateStatus
 import kotlinx.coroutines.Job
+import io.github.nanobuo.myiptv.R
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,6 +62,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val ui: StateFlow<UiState> = _ui.asStateFlow()
 
     val updateStatus: StateFlow<UpdateStatus> = updateManager.status
+
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    /** Short messages for the user (shown as a toast). */
+    val messages: SharedFlow<String> = _messages.asSharedFlow()
 
     private val _showUpdateDialog = MutableStateFlow(false)
     val showUpdateDialog: StateFlow<Boolean> = _showUpdateDialog.asStateFlow()
@@ -135,8 +143,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     playlist = fresh
                     applyPlaylist(fresh)
                 } catch (e: Exception) {
+                    val reason = e.message ?: e.javaClass.simpleName
                     if (playlist == null) {
-                        _ui.update { it.copy(playlistError = e.message ?: e.javaClass.simpleName) }
+                        _ui.update { it.copy(playlistError = reason) }
+                    } else {
+                        // Keep the saved copy, but say that it could not be updated.
+                        _messages.tryEmit(getApplication<Application>().getString(R.string.playlist_refresh_failed, reason))
                     }
                 }
             }
@@ -168,6 +180,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun applyPlaylist(playlist: Playlist) {
         val groups = playlist.channels.mapNotNull { it.group }.distinct()
         _ui.update { it.copy(channels = playlist.channels, groups = groups, playlistError = null) }
+        // If the channel being played changed in the new playlist (address, headers, quality...),
+        // restart it with the new data instead of keeping the old stream.
+        val playing = player.currentChannel
+        if (playing != null && player.playingKey.value == playing.key) {
+            playlist.channels.firstOrNull { it.key == playing.key }
+                ?.takeIf { it != playing }
+                ?.let { player.play(it) }
+        }
         val s = settings.value ?: return
         if (!autoStartDone) {
             autoStartDone = true

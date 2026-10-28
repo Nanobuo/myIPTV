@@ -105,6 +105,10 @@ fun MobileRoot(
     val tablet = isTablet()
     val backgroundAudio = settings?.backgroundAudio != false
 
+    LaunchedEffect(vm) {
+        vm.messages.collect { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show() }
+    }
+
     // ---- Player lifecycle ------------------------------------------------------------------
     // With background audio the player keeps going when the app is not visible (video off);
     // otherwise it is released and recreated on return, like on TV.

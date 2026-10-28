@@ -167,4 +167,5 @@
     <string name="invert_swipe_desc">Scorrere verso l\'alto (o ▲ sul telecomando) va al canale precedente</string>
     <string name="theme_system">Come il dispositivo</string>
     <string name="choose_file">Scegli file</string>
+    <string name="playlist_refresh_failed">Impossibile aggiornare la playlist (%1$s): uso la copia salvata</string>
 </resources>
