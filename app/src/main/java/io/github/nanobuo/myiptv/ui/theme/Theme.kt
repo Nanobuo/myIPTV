@@ -132,6 +132,29 @@ private fun seededLightScheme(hue: Float): M3ColorScheme {
  * Neutral tones inspired by the tvOS light appearance: a soft light-gray canvas,
  * near-white panels and pure white focused items, with almost-black text.
  */
+/**
+ * Soft dark neutrals, inspired by the tvOS dark appearance: deep graphite instead of near black,
+ * slightly lighter panels and soft white text. Accent colors stay those of the theme.
+ */
+private fun softDarkNeutrals(scheme: M3ColorScheme): M3ColorScheme = scheme.copy(
+    background = Color(0xFF1C1C1E),
+    onBackground = Color(0xFFF2F2F7),
+    surface = Color(0xFF1C1C1E),
+    onSurface = Color(0xFFF2F2F7),
+    surfaceVariant = Color(0xFF3A3A3C),
+    onSurfaceVariant = Color(0xFFAEAEB2),
+    surfaceTint = Color.Transparent,
+    inverseSurface = Color(0xFFF2F2F7),
+    inverseOnSurface = Color(0xFF1C1C1E),
+    outline = Color(0xFF8E8E93),
+    outlineVariant = Color(0xFF48484A),
+    surfaceContainerLowest = Color(0xFF161618),
+    surfaceContainerLow = Color(0xFF232325),
+    surfaceContainer = Color(0xFF2A2A2D),
+    surfaceContainerHigh = Color(0xFF323235),
+    surfaceContainerHighest = Color(0xFF3A3A3C),
+)
+
 private fun appleLightNeutrals(scheme: M3ColorScheme): M3ColorScheme = scheme.copy(
     background = Color(0xFFE8E8ED),
     onBackground = Color(0xFF1D1D1F),
@@ -160,8 +183,8 @@ fun MyIptvTheme(themeColor: String, light: Boolean, content: @Composable () -> U
     val m3 = when {
         light && dynamic -> appleLightNeutrals(dynamicLightColorScheme(context))
         light -> appleLightNeutrals(seededLightScheme(selected.hue))
-        dynamic -> dynamicDarkColorScheme(context)
-        else -> seededDarkScheme(selected.hue)
+        dynamic -> softDarkNeutrals(dynamicDarkColorScheme(context))
+        else -> softDarkNeutrals(seededDarkScheme(selected.hue))
     }
     val base = if (light) tvLightColorScheme() else tvDarkColorScheme()
     val tv = base.copy(
