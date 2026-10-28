@@ -9,6 +9,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.media3.exoplayer.ExoPlayer
 import io.github.nanobuo.myiptv.ui.components.VideoSurface
+import io.github.nanobuo.myiptv.ui.theme.appListItemColors
 import io.github.nanobuo.myiptv.ui.theme.appListItemGlow
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Box
@@ -165,10 +166,12 @@ fun HomeScreen(vm: MainViewModel) {
                 headlineContent = { Text(stringResource(R.string.tv_guide)) },
                 scale = ListItemDefaults.scale(focusedScale = 1.02f),
                 glow = appListItemGlow(),
+                colors = appListItemColors(),
             )
             ListItem(
                 selected = false,
                 glow = appListItemGlow(),
+                colors = appListItemColors(),
                 onClick = { vm.navigate(Screen.Settings) },
                 leadingContent = { Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(20.dp)) },
                 headlineContent = { Text(stringResource(R.string.settings)) },
@@ -181,6 +184,7 @@ fun HomeScreen(vm: MainViewModel) {
                 onClick = { groupsExpanded = !groupsExpanded },
                 modifier = Modifier.focusRequester(groupHeaderRequester),
                 glow = appListItemGlow(),
+                colors = appListItemColors(),
                 scale = ListItemDefaults.scale(focusedScale = 1.02f),
                 leadingContent = {
                     Icon(
@@ -222,6 +226,7 @@ fun HomeScreen(vm: MainViewModel) {
                             },
                             modifier = if (group == selectedGroup) Modifier.focusRequester(selectedGroupRequester) else Modifier,
                             glow = appListItemGlow(),
+                            colors = appListItemColors(),
                             headlineContent = {
                                 Text(groupLabel(group), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             },
@@ -369,6 +374,7 @@ private fun ChannelRow(
         modifier = modifier,
         scale = ListItemDefaults.scale(focusedScale = 1.02f),
         glow = appListItemGlow(),
+        colors = appListItemColors(),
         leadingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

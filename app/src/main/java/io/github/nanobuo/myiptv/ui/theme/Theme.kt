@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
 import androidx.tv.material3.Glow
+import androidx.tv.material3.ListItemColors
 import androidx.tv.material3.ListItemDefaults
 import androidx.tv.material3.ListItemGlow
 import io.github.nanobuo.myiptv.R
@@ -48,6 +49,25 @@ fun appListItemGlow(): ListItemGlow = if (LocalIsLightTheme.current) {
     ListItemDefaults.glow(focusedGlow = Glow(elevationColor = Color(0x40000000), elevation = 10.dp))
 } else {
     ListItemDefaults.glow()
+}
+
+/**
+ * List items in the light theme become white with dark text when focused, like on tvOS.
+ * The dark theme keeps the library defaults.
+ */
+@Composable
+fun appListItemColors(): ListItemColors = if (LocalIsLightTheme.current) {
+    val text = Color(0xFF1D1D1F)
+    ListItemDefaults.colors(
+        focusedContainerColor = Color.White,
+        focusedContentColor = text,
+        pressedContainerColor = Color.White,
+        pressedContentColor = text,
+        focusedSelectedContainerColor = Color.White,
+        focusedSelectedContentColor = text,
+    )
+} else {
+    ListItemDefaults.colors()
 }
 
 /** Tone (0-100) of a hue, an approximation of the Material 3 tonal palettes. */
@@ -120,8 +140,9 @@ private fun appleLightNeutrals(scheme: M3ColorScheme): M3ColorScheme = scheme.co
     surfaceVariant = Color(0xFFDCDCE1),
     onSurfaceVariant = Color(0xFF6E6E73),
     surfaceTint = Color.Transparent,
-    inverseSurface = Color.White,
-    inverseOnSurface = Color(0xFF1D1D1F),
+    // Standard inverse tones: buttons and chips use them for their focused state.
+    inverseSurface = Color(0xFF2C2C2E),
+    inverseOnSurface = Color(0xFFF5F5F7),
     outline = Color(0xFFAEAEB2),
     outlineVariant = Color(0xFFD1D1D6),
     surfaceContainerLowest = Color.White,

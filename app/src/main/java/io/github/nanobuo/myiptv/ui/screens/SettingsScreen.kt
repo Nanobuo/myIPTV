@@ -66,6 +66,7 @@ import io.github.nanobuo.myiptv.data.SourceType
 import io.github.nanobuo.myiptv.ui.MainViewModel
 import io.github.nanobuo.myiptv.ui.Screen
 import io.github.nanobuo.myiptv.ui.theme.ThemeColor
+import io.github.nanobuo.myiptv.ui.theme.appListItemColors
 import io.github.nanobuo.myiptv.ui.theme.appListItemGlow
 import io.github.nanobuo.myiptv.ui.theme.supportsDynamicColor
 import io.github.nanobuo.myiptv.update.UpdateStatus
@@ -308,6 +309,7 @@ fun SettingRow(
         modifier = modifier,
         scale = ListItemDefaults.scale(focusedScale = 1.02f),
         glow = appListItemGlow(),
+        colors = appListItemColors(),
         leadingContent = { Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp)) },
         headlineContent = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         supportingContent = if (subtitle != null) {

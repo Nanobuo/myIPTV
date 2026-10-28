@@ -103,6 +103,7 @@ import io.github.nanobuo.myiptv.player.StreamStats
 import io.github.nanobuo.myiptv.ui.MainViewModel
 import io.github.nanobuo.myiptv.ui.Screen
 import io.github.nanobuo.myiptv.ui.components.VideoSurface
+import io.github.nanobuo.myiptv.ui.theme.appListItemColors
 import io.github.nanobuo.myiptv.ui.theme.appListItemGlow
 import io.github.nanobuo.myiptv.ui.components.ChannelLogo
 import io.github.nanobuo.myiptv.ui.components.ProgrammeProgress
@@ -656,6 +657,7 @@ private fun ChannelListPanel(
                             modifier = if (requester != null) Modifier.focusRequester(requester) else Modifier,
                             scale = ListItemDefaults.scale(focusedScale = 1.02f),
                             glow = appListItemGlow(),
+                            colors = appListItemColors(),
                             leadingContent = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
@@ -949,6 +951,7 @@ private fun OptionRow(
         modifier = modifier,
         scale = ListItemDefaults.scale(focusedScale = 1.02f),
         glow = appListItemGlow(),
+        colors = appListItemColors(),
         leadingContent = if (icon != null) {
             { Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) }
         } else {

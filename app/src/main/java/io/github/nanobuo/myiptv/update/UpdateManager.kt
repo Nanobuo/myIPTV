@@ -84,7 +84,7 @@ class UpdateManager(
             val apk = release.assets.firstOrNull { it.name.endsWith(".apk", ignoreCase = true) } ?: return@withContext null
             UpdateInfo(
                 version = release.tagName.removePrefix("v").removePrefix("V"),
-                notes = release.body.orEmpty(),
+                notes = plainText(release.body.orEmpty()),
                 apkUrl = apk.downloadUrl,
                 size = apk.size,
             )
@@ -147,6 +147,16 @@ class UpdateManager(
     }
 
     companion object {
+        /** Release notes are Markdown: show them as plain text in the update dialog. */
+        fun plainText(markdown: String): String = markdown.lines().joinToString("\n") { line ->
+            line.trimEnd()
+                .replace(Regex("^#{1,6}\\s*"), "")
+                .replace(Regex("^\\s*[-*]\\s+"), "• ")
+                .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")
+                .replace(Regex("\\[(.+?)]\\((.+?)\\)"), "$1")
+                .replace("`", "")
+        }.replace(Regex("\n{3,}"), "\n\n").trim()
+
         /** Compares dotted versions such as 1.10.0 and 1.9.2. */
         fun isNewer(candidate: String, current: String): Boolean {
             val a = candidate.split('.', '-').map { it.toIntOrNull() ?: 0 }
