@@ -40,6 +40,10 @@ L'app si adatta da sola: sul televisore si usa con il telecomando, su telefono e
 
 Picture-in-Picture e audio in sottofondo si possono disattivare dalle **Impostazioni**.
 
+- **Invio alla TV (Chromecast)**: tocca l'icona Cast nella lista canali o nel player, scegli il dispositivo e il canale
+  passa sulla TV; cambiando canale dal telefono cambia anche sulla TV. I canali che richiedono uno User-Agent
+  particolare o sono protetti potrebbero non funzionare in questo modo.
+
 ---
 
 ## Primo avvio
@@ -48,6 +52,8 @@ Picture-in-Picture e audio in sottofondo si possono disattivare dalle **Impostaz
 2. Scegli come aggiungerla:
    - **Indirizzo web (URL)**: scrivi l'indirizzo che ti ha dato il tuo fornitore.
    - **File sul dispositivo**: scegli un file `.m3u` dalla memoria del dispositivo o da una chiavetta USB.
+   - **Aggiungi dal telefono** (sulla TV): inquadra con il telefono il QR code che compare e compila il modulo
+     sul telefono, senza dover scrivere con il telecomando. Telefono e TV devono essere sulla stessa rete Wi-Fi.
 3. *(Facoltativo)* inserisci l'indirizzo della **guida TV (EPG)**. Se la tua playlist ne contiene già uno, puoi lasciare il campo vuoto.
 4. Premi **Salva**: i canali compariranno in pochi secondi.
 
@@ -101,6 +107,10 @@ Picture-in-Picture e audio in sottofondo si possono disattivare dalle **Impostaz
 - **Playlist**: aggiungi, modifica, aggiorna o elimina le tue playlist e scegli quella da usare.
 - **Avvia sull'ultimo canale**: all'apertura l'app riparte dall'ultimo canale che stavi guardando.
 - **Lingua audio preferita**: l'app sceglie in automatico l'audio nella lingua che preferisci, quando disponibile.
+- **Adatta frequenza dello schermo** (TV): la TV passa a 50 Hz per i canali a 50 o 25 fotogrammi al secondo,
+  come quasi tutti i canali italiani, e i movimenti diventano più fluidi. Al cambio di frequenza lo schermo può
+  diventare nero per un istante.
+- **Modalità tunneling** (TV): riproduzione più efficiente su alcuni dispositivi. Se un canale dà problemi, disattivala.
 - **Aspetto** (scuro o chiaro), **Colore del tema** e **Lingua** dell'app.
 - **Aggiornamenti**: controlla se c'è una nuova versione.
 
@@ -110,6 +120,11 @@ basta attivare l'interruttore e tornare indietro.
 ---
 
 ## Domande frequenti
+
+**Cosa compare nella schermata principale della TV?**
+L'ultimo canale guardato può comparire in *Continua a guardare*, e sui televisori che mostrano le righe delle app
+c'è una riga *myIPTV – Preferiti*. Selezionandoli si apre direttamente il canale. È il televisore a decidere
+se e dove mostrarli.
 
 **Non vedo la guida TV.**
 Controlla che la playlist contenga l'indirizzo della guida o inseriscilo tu modificando la playlist.
