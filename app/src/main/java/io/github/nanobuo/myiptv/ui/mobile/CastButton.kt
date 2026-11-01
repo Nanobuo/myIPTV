@@ -13,9 +13,9 @@ fun CastButton(onDark: Boolean, modifier: Modifier = Modifier) {
     AndroidView(
         factory = { ctx ->
             val theme = if (onDark) {
-                androidx.appcompat.R.style.Theme_AppCompat_NoActionBar
+                androidx.mediarouter.R.style.Theme_MediaRouter
             } else {
-                androidx.appcompat.R.style.Theme_AppCompat_Light_NoActionBar
+                androidx.mediarouter.R.style.Theme_MediaRouter_Light
             }
             MediaRouteButton(ContextThemeWrapper(ctx, theme)).also {
                 runCatching { CastButtonFactory.setUpMediaRouteButton(ctx.applicationContext, it) }
