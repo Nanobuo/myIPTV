@@ -92,6 +92,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.profileinstaller)
+    implementation(libs.tvprovider)
+    implementation(libs.zxing.core)
+    implementation(libs.play.services.cast.framework)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

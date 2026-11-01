@@ -26,7 +26,9 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.dash.manifest.DashManifest
 import androidx.media3.exoplayer.hls.HlsManifest
 import androidx.media3.exoplayer.smoothstreaming.manifest.SsManifest
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
+import androidx.media3.exoplayer.video.VideoFrameMetadataListener
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManager
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManagerProvider
 import androidx.media3.exoplayer.drm.FrameworkMediaDrm
@@ -107,6 +109,41 @@ class PlayerController(
     val playingKey: StateFlow<String?> = _playingKey.asStateFlow()
 
     private val bandwidthMeter by lazy { DefaultBandwidthMeter.getSingletonInstance(context) }
+    private var trackSelector: DefaultTrackSelector? = null
+
+    private val _frameRate = MutableStateFlow<Float?>(null)
+    /** Frame rate of the channel being played, measured from the decoded frames when not declared. */
+    val frameRate: StateFlow<Float?> = _frameRate.asStateFlow()
+    private val frameTimes = LongArray(FRAME_SAMPLES)
+    @Volatile private var frameSamples = 0
+
+    private val frameListener = VideoFrameMetadataListener { presentationTimeUs, _, format, _ ->
+        // Runs on the playback thread, once per rendered frame, until the rate is known.
+        if (_frameRate.value != null) return@VideoFrameMetadataListener
+        if (format.frameRate > 0f && format.frameRate != Format.NO_VALUE.toFloat()) {
+            _frameRate.value = snapFrameRate(format.frameRate)
+            return@VideoFrameMetadataListener
+        }
+        val n = frameSamples
+        if (n < FRAME_SAMPLES) {
+            frameTimes[n] = presentationTimeUs
+            frameSamples = n + 1
+        }
+        if (frameSamples == FRAME_SAMPLES) {
+            val deltas = (1 until FRAME_SAMPLES).map { frameTimes[it] - frameTimes[it - 1] }.filter { it > 0 }.sorted()
+            if (deltas.isNotEmpty()) {
+                val median = deltas[deltas.size / 2]
+                _frameRate.value = snapFrameRate(1_000_000f / median)
+            }
+        }
+    }
+
+    /** Tunneled playback: decoding and rendering handled together by the device, often smoother on TV boxes. */
+    var tunneling: Boolean = false
+        set(value) {
+            field = value
+            trackSelector?.let { it.setParameters(it.buildUponParameters().setTunnelingEnabled(value)) }
+        }
     private var videoDecoder: String? = null
     private var audioDecoder: String? = null
 
@@ -181,7 +218,12 @@ class PlayerController(
         val renderers = DefaultRenderersFactory(context)
             .setEnableDecoderFallback(true)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+        val selector = DefaultTrackSelector(context).also {
+            it.setParameters(it.buildUponParameters().setTunnelingEnabled(tunneling))
+        }
+        trackSelector = selector
         val p = ExoPlayer.Builder(context, renderers)
+            .setTrackSelector(selector)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -195,6 +237,7 @@ class PlayerController(
             .build()
         p.addListener(listener)
         p.addAnalyticsListener(analyticsListener)
+        p.setVideoFrameMetadataListener(frameListener)
         p.playWhenReady = true
         applyAudioPreference(p)
         player = p
@@ -208,6 +251,7 @@ class PlayerController(
         player?.removeListener(listener)
         player?.release()
         player = null
+        trackSelector = null
         _exoPlayer.value = null
     }
 
@@ -217,6 +261,8 @@ class PlayerController(
         _playingKey.value = channel.key
         videoDecoder = null
         audioDecoder = null
+        frameSamples = 0
+        _frameRate.value = null
         attempts = buildAttempts(channel)
         attemptIndex = 0
         retryCount = 0
@@ -234,6 +280,7 @@ class PlayerController(
         handler.removeCallbacksAndMessages(null)
         current = null
         _playingKey.value = null
+        _frameRate.value = null
         _state.value = PlayerUiState()
         player?.stop()
         player?.clearMediaItems()
@@ -299,7 +346,7 @@ class PlayerController(
             streamType = streamType,
             variants = variants,
             resolution = resolution,
-            frameRate = video?.frameRate?.takeIf { it > 0 },
+            frameRate = video?.frameRate?.takeIf { it > 0 } ?: _frameRate.value,
             hdr = hdr,
             videoCodec = video?.let { videoCodecName(it) },
             videoBitrate = video?.bitrate?.takeIf { it != Format.NO_VALUE && it > 0 },
@@ -582,6 +629,14 @@ class PlayerController(
         const val TYPE_SS = "ss"
         const val TYPE_PROGRESSIVE = "progressive"
         const val MAX_RETRIES = 3
+        const val FRAME_SAMPLES = 48
+
+        /** Rounds a measured rate to the nearest standard one (25, 29.97, 50...). */
+        fun snapFrameRate(fps: Float): Float {
+            val standard = listOf(23.976f, 24f, 25f, 29.97f, 30f, 48f, 50f, 59.94f, 60f)
+            val nearest = standard.minBy { kotlin.math.abs(it - fps) }
+            return if (kotlin.math.abs(nearest - fps) < 1.5f) nearest else fps
+        }
 
         val FORMAT_ERRORS = setOf(
             PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,

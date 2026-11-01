@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -116,6 +117,19 @@ fun PlaylistEditorScreen(vm: MainViewModel, playlistId: String?) {
                     stringResource(if (existing == null) R.string.new_playlist else R.string.edit_playlist),
                     style = MaterialTheme.typography.headlineMedium,
                 )
+            }
+            if (existing == null) {
+                item {
+                    // Typing a long address with the remote is tedious: offer the phone instead.
+                    OutlinedButton(onClick = {
+                        vm.back()
+                        vm.navigate(io.github.nanobuo.myiptv.ui.Screen.RemoteAdd)
+                    }) {
+                        Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.add_from_phone))
+                    }
+                }
             }
             item {
                 OutlinedTextField(

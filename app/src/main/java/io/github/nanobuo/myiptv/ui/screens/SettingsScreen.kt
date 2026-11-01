@@ -23,6 +23,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
@@ -123,6 +126,14 @@ fun SettingsScreen(vm: MainViewModel) {
             }
             item {
                 SettingRow(
+                    icon = Icons.Default.QrCode2,
+                    title = stringResource(R.string.add_from_phone),
+                    subtitle = stringResource(R.string.add_from_phone_desc),
+                    onClick = { vm.navigate(Screen.RemoteAdd) },
+                )
+            }
+            item {
+                SettingRow(
                     icon = Icons.Default.Refresh,
                     title = stringResource(R.string.refresh_all),
                     subtitle = stringResource(R.string.refresh_all_desc),
@@ -150,6 +161,24 @@ fun SettingsScreen(vm: MainViewModel) {
                     subtitle = stringResource(R.string.start_last_channel_desc),
                     checked = s.startOnLastChannel,
                     onChange = { vm.setStartOnLastChannel(it) },
+                )
+            }
+            item {
+                SwitchRow(
+                    icon = Icons.Default.Speed,
+                    title = stringResource(R.string.match_frame_rate),
+                    subtitle = stringResource(R.string.match_frame_rate_desc),
+                    checked = s.matchFrameRate,
+                    onChange = { vm.setMatchFrameRate(it) },
+                )
+            }
+            item {
+                SwitchRow(
+                    icon = Icons.Default.Memory,
+                    title = stringResource(R.string.tunneling),
+                    subtitle = stringResource(R.string.tunneling_desc),
+                    checked = s.tunneling,
+                    onChange = { vm.setTunneling(it) },
                 )
             }
             item {

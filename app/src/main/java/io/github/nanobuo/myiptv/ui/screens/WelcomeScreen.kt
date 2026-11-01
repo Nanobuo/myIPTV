@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +64,11 @@ fun WelcomeScreen(vm: MainViewModel) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.add_playlist))
+                }
+                OutlinedButton(onClick = { vm.navigate(Screen.RemoteAdd) }) {
+                    Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.add_from_phone))
                 }
                 OutlinedButton(onClick = { vm.navigate(Screen.Settings) }) {
                     Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(20.dp))

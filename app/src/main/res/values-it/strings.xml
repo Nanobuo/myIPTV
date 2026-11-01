@@ -168,4 +168,22 @@
     <string name="theme_system">Come il dispositivo</string>
     <string name="choose_file">Scegli file</string>
     <string name="playlist_refresh_failed">Impossibile aggiornare la playlist (%1$s): uso la copia salvata</string>
+
+    <!-- Phone input, refresh rate, cast, TV home -->
+    <string name="match_frame_rate">Adatta frequenza dello schermo</string>
+    <string name="match_frame_rate_desc">La TV passa a 50 Hz per i canali a 50/25 fps, per movimenti più fluidi</string>
+    <string name="tunneling">Modalità tunneling</string>
+    <string name="tunneling_desc">Riproduzione più efficiente su alcuni dispositivi; disattivala se un canale dà problemi</string>
+    <string name="stat_display">Schermo</string>
+    <string name="add_from_phone">Aggiungi dal telefono</string>
+    <string name="add_from_phone_desc">Scrivi l\'indirizzo della playlist sul telefono inquadrando un QR code</string>
+    <string name="remote_instructions">Inquadra il QR code con il telefono (collegato alla stessa rete Wi-Fi della TV), compila il modulo e premi Invia: la playlist verrà aggiunta qui.</string>
+    <string name="remote_or_open">Oppure apri questo indirizzo nel browser del telefono:</string>
+    <string name="remote_no_network">La TV non sembra collegata a una rete locale.</string>
+    <string name="remote_page_intro">Inserisci i dati della playlist: verranno inviati a myIPTV sulla tua TV.</string>
+    <string name="remote_page_send">Invia alla TV</string>
+    <string name="remote_page_done">Fatto! Guarda la TV: la playlist è in caricamento.</string>
+    <string name="remote_page_not_found">Pagina non trovata: inquadra di nuovo il QR code mostrato sulla TV.</string>
+    <string name="home_row_title">myIPTV – Preferiti</string>
+    <string name="casting_to">In riproduzione su %1$s</string>
 </resources>

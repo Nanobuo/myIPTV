@@ -33,6 +33,7 @@ sealed interface Screen {
     data object Player : Screen
     data object Settings : Screen
     data object Guide : Screen
+    data object RemoteAdd : Screen
     data class PlaylistEditor(val playlistId: String?) : Screen
 }
 
@@ -54,6 +55,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val settingsRepo = container.settings
     val player = container.player
     val updateManager = container.updateManager
+    val cast = container.cast
 
     val settings: StateFlow<AppSettings?> = settingsRepo.settings
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -76,11 +78,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private var loadJob: Job? = null
     private var autoStartDone = false
     private var previousKey: String? = null
+    /** Channel requested from outside (TV home screen) before the playlist was loaded. */
+    private var pendingChannelKey: String? = null
 
     init {
+        // Casting starts: the channel moves to the TV. Casting ends: it continues here.
+        cast.onSessionStarted = {
+            currentChannel()?.let { channel ->
+                if (cast.cast(channel)) player.stop()
+            }
+        }
+        cast.onSessionEnded = {
+            if (backStack.lastOrNull() == Screen.Player) currentChannel()?.let { player.play(it) }
+        }
         viewModelScope.launch {
             val s = settings.filterNotNull().first()
             player.preferredAudio = s.preferredAudio
+            player.tunneling = s.tunneling
             val active = s.activePlaylist
             if (active == null) {
                 backStack.add(Screen.Welcome)
@@ -189,6 +203,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 ?.let { player.play(it) }
         }
         val s = settings.value ?: return
+        pendingChannelKey?.let { key ->
+            playlist.channels.firstOrNull { it.key == key }?.let {
+                pendingChannelKey = null
+                autoStartDone = true
+                playChannel(it)
+                return
+            }
+        }
         if (!autoStartDone) {
             autoStartDone = true
             if (s.startOnLastChannel && backStack.lastOrNull() == Screen.Home) {
@@ -252,14 +274,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val current = _ui.value.currentKey
         if (current != channel.key) previousKey = current
         _ui.update { it.copy(currentKey = channel.key) }
-        if (player.playingKey.value != channel.key) player.play(channel)
+        if (cast.isCasting) {
+            cast.cast(channel)
+        } else if (player.playingKey.value != channel.key) {
+            player.play(channel)
+        }
         viewModelScope.launch { settingsRepo.setLastChannel(channel.key) }
         navigate(Screen.Player)
     }
 
+    /** Opens a channel by its key (links from the TV home screen). */
+    fun openChannel(key: String) {
+        val channel = _ui.value.channels.firstOrNull { it.key == key }
+        if (channel != null) playChannel(channel) else pendingChannelKey = key
+    }
+
     /** Plays [channel] in a small preview without leaving the current screen. */
     fun preview(channel: Channel) {
-        if (player.playingKey.value == channel.key) return
+        if (cast.isCasting || player.playingKey.value == channel.key) return
         _ui.update { it.copy(currentKey = channel.key) }
         player.play(channel)
     }
@@ -301,6 +333,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setAutoUpdateCheck(value: Boolean) = viewModelScope.launch { settingsRepo.setAutoUpdateCheck(value) }
     fun setThemeColor(value: String) = viewModelScope.launch { settingsRepo.setThemeColor(value) }
     fun setThemeMode(value: String) = viewModelScope.launch { settingsRepo.setThemeMode(value) }
+    fun setMatchFrameRate(value: Boolean) = viewModelScope.launch { settingsRepo.setMatchFrameRate(value) }
+
+    fun setTunneling(value: Boolean) = viewModelScope.launch {
+        settingsRepo.setTunneling(value)
+        player.tunneling = value
+        // Applied by restarting the channel being played.
+        player.currentChannel?.let { if (player.playingKey.value == it.key) player.play(it) }
+    }
+
     fun setPipEnabled(value: Boolean) = viewModelScope.launch { settingsRepo.setPipEnabled(value) }
     fun setBackgroundAudio(value: Boolean) = viewModelScope.launch { settingsRepo.setBackgroundAudio(value) }
 
@@ -327,6 +368,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
+        cast.onSessionStarted = null
+        cast.onSessionEnded = null
         player.release()
     }
 

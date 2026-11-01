@@ -32,6 +32,10 @@ data class AppSettings(
     val pipEnabled: Boolean = true,
     /** Phones and tablets: keep the audio playing with the screen off or the app in background. */
     val backgroundAudio: Boolean = true,
+    /** TV: switch the display refresh rate to match the channel (e.g. 50 Hz). */
+    val matchFrameRate: Boolean = true,
+    /** TV: tunneled playback. */
+    val tunneling: Boolean = false,
     val lastUpdateCheck: Long = 0L,
 ) {
     val activePlaylist: PlaylistSource?
@@ -66,6 +70,8 @@ class SettingsRepository(private val context: Context) {
             themeMode = p[THEME_MODE] ?: AppSettings.MODE_DARK,
             pipEnabled = p[PIP_ENABLED] ?: true,
             backgroundAudio = p[BACKGROUND_AUDIO] ?: true,
+            matchFrameRate = p[MATCH_FRAME_RATE] ?: true,
+            tunneling = p[TUNNELING] ?: false,
             lastUpdateCheck = p[LAST_UPDATE_CHECK] ?: 0L,
         )
     }
@@ -99,6 +105,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setAutoUpdateCheck(value: Boolean) = context.dataStore.edit { it[AUTO_UPDATE] = value }
     suspend fun setPreferredAudio(value: String) = context.dataStore.edit { it[PREFERRED_AUDIO] = value }
     suspend fun setThemeColor(value: String) = context.dataStore.edit { it[THEME_COLOR] = value }
+    suspend fun setMatchFrameRate(value: Boolean) = context.dataStore.edit { it[MATCH_FRAME_RATE] = value }
+    suspend fun setTunneling(value: Boolean) = context.dataStore.edit { it[TUNNELING] = value }
     suspend fun setPipEnabled(value: Boolean) = context.dataStore.edit { it[PIP_ENABLED] = value }
     suspend fun setBackgroundAudio(value: Boolean) = context.dataStore.edit { it[BACKGROUND_AUDIO] = value }
     suspend fun setThemeMode(value: String) = context.dataStore.edit { it[THEME_MODE] = value }
@@ -119,6 +127,8 @@ class SettingsRepository(private val context: Context) {
         val THEME_COLOR = stringPreferencesKey("theme_color")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val PIP_ENABLED = booleanPreferencesKey("pip_enabled")
+        val MATCH_FRAME_RATE = booleanPreferencesKey("match_frame_rate")
+        val TUNNELING = booleanPreferencesKey("tunneling")
         val BACKGROUND_AUDIO = booleanPreferencesKey("background_audio")
         val LAST_UPDATE_CHECK = longPreferencesKey("last_update_check")
     }

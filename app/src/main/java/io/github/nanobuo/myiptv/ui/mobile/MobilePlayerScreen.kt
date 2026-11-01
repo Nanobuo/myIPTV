@@ -111,6 +111,7 @@ fun MobilePlayerScreen(vm: MainViewModel, inPip: Boolean, onEnterPip: () -> Unit
     val context = LocalContext.current
     val pipSupported = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) }
     val invert = settings?.invertUpDown == true
+    val castDevice by vm.cast.deviceName.collectAsStateWithLifecycle()
 
     var controlsVisible by remember { mutableStateOf(true) }
     var interaction by remember { mutableIntStateOf(0) }
@@ -164,7 +165,16 @@ fun MobilePlayerScreen(vm: MainViewModel, inPip: Boolean, onEnterPip: () -> Unit
         FullScreenVideo(exoPlayer, if (inPip) AspectMode.Fit else aspectMode, playerState.videoAspect)
 
         val error = playerState.error
-        if (error != null && !inPip) {
+        val device = castDevice
+        if (device != null && channel != null) {
+            // Casting: the video is on the TV, the phone works as a remote.
+            Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                ChannelLogo(channel, modifier = Modifier.width(140.dp), size = 80.dp)
+                Spacer(Modifier.height(16.dp))
+                Text(channel.name, color = Color.White, style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.casting_to, device), color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodyMedium)
+            }
+        } else if (error != null && !inPip) {
             Column(
                 Modifier.align(Alignment.Center).padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -203,7 +213,8 @@ fun MobilePlayerScreen(vm: MainViewModel, inPip: Boolean, onEnterPip: () -> Unit
                     formatTime = formatTime,
                     aspectMode = aspectMode,
                     statsVisible = statsVisible,
-                    pipSupported = pipSupported,
+                    pipSupported = pipSupported && castDevice == null,
+                    castAvailable = vm.cast.available,
                     onBack = { vm.back() },
                     onPrevious = {
                         touch()
@@ -252,6 +263,7 @@ private fun PlayerControlsOverlay(
     aspectMode: AspectMode,
     statsVisible: Boolean,
     pipSupported: Boolean,
+    castAvailable: Boolean,
     onBack: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -301,6 +313,9 @@ private fun PlayerControlsOverlay(
                     contentDescription = stringResource(R.string.stats_title),
                     tint = if (statsVisible) MaterialTheme.colorScheme.primary else Color.White,
                 )
+            }
+            if (castAvailable) {
+                CastButton(onDark = true, modifier = Modifier.size(48.dp))
             }
             if (pipSupported) {
                 IconButton(onClick = onPip) {

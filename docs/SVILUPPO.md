@@ -61,3 +61,12 @@ Gli aggiornamenti in-app scaricano l'APK dall'ultima release di GitHub, quindi o
 
 Per firmare in locale si può creare un file `keystore.properties` (escluso da git) con
 `storeFile`, `storePassword`, `keyAlias` e `keyPassword`.
+
+### Note di rilascio
+
+Prima di pubblicare una versione si può aggiungere il file `docs/note-di-rilascio/<tag>.md`
+(per esempio `docs/note-di-rilascio/v1.2.0.md`): il workflow lo usa come descrizione della release.
+Se il file non c'è, GitHub genera l'elenco automatico delle modifiche.
+
+La release si può anche avviare a mano da **Actions → Release → Run workflow**, indicando la versione:
+tag e release vengono creati automaticamente.

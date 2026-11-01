@@ -2,6 +2,7 @@ package io.github.nanobuo.myiptv
 
 import android.app.Application
 import android.content.Context
+import io.github.nanobuo.myiptv.cast.CastController
 import io.github.nanobuo.myiptv.data.Network
 import io.github.nanobuo.myiptv.data.PlaylistRepository
 import io.github.nanobuo.myiptv.data.SettingsRepository
@@ -32,4 +33,6 @@ class AppContainer(context: Context) {
     val playlists = PlaylistRepository(context, httpClient)
     val player = PlayerController(context, httpClient)
     val updateManager = UpdateManager(context, httpClient)
+    /** Google Cast, initialized only by the phone/tablet interface. */
+    val cast = CastController(context)
 }

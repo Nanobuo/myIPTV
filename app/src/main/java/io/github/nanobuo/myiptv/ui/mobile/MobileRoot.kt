@@ -105,6 +105,8 @@ fun MobileRoot(
     val tablet = isTablet()
     val backgroundAudio = settings?.backgroundAudio != false
 
+    // Google Cast is used only on phones and tablets.
+    remember { vm.cast.attach() }
     LaunchedEffect(vm) {
         vm.messages.collect { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show() }
     }

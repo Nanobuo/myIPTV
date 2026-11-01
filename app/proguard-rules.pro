@@ -12,3 +12,6 @@
 -dontwarn org.conscrypt.**
 -dontwarn org.bouncycastle.**
 -dontwarn org.openjsse.**
+
+# Google Cast options provider is referenced only by name from the manifest.
+-keep class io.github.nanobuo.myiptv.cast.CastOptionsProvider { *; }

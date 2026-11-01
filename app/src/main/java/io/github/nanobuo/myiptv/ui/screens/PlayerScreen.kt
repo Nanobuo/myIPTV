@@ -76,6 +76,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -1025,6 +1026,9 @@ internal fun StatsPanel(vm: MainViewModel, modifier: Modifier = Modifier) {
             s.audioLanguage,
         )
         if (audio.isNotEmpty()) add(stringResource(R.string.stat_audio) to audio.joinToString(" · "))
+        LocalView.current.display?.refreshRate?.let { hz ->
+            add(stringResource(R.string.stat_display) to "%.2f Hz".format(Locale.US, hz).replace(".00", ""))
+        }
         add(stringResource(R.string.stat_speed) to formatBitrate(s.bandwidth))
         add(stringResource(R.string.stat_buffer) to "%.1f s".format(Locale.US, s.bufferMs / 1000f))
         s.liveOffsetMs?.let { add(stringResource(R.string.stat_live_offset) to "%.1f s".format(Locale.US, it / 1000f)) }

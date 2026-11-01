@@ -14,6 +14,12 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.mutableStateOf
 import io.github.nanobuo.myiptv.ui.mobile.MobileRoot
+import io.github.nanobuo.myiptv.ui.mobile.findActivity
+import io.github.nanobuo.myiptv.util.DisplayModes
+import io.github.nanobuo.myiptv.util.TvHome
+import android.content.Intent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -31,6 +37,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.nanobuo.myiptv.ui.screens.GuideScreen
+import io.github.nanobuo.myiptv.ui.screens.RemoteAddScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
@@ -67,6 +74,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (!isTv) enableEdgeToEdge()
+        handleLink(intent)
         setContent {
             val settings by vm.settings.collectAsStateWithLifecycle()
             val theme = settings?.themeColor ?: AppSettings.THEME_DYNAMIC
@@ -94,6 +102,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleLink(intent)
+    }
+
+    /** myiptv://channel/<key>, used by the TV home screen rows. */
+    private fun handleLink(intent: Intent?) {
+        TvHome.keyFromLink(intent?.data)?.let(vm::openChannel)
     }
 
     // ---- Picture-in-Picture (phones and tablets) ----------------------------------------------
@@ -183,7 +202,37 @@ private fun AppRoot(vm: MainViewModel, onExit: () -> Unit) {
     val screen = vm.backStack.lastOrNull()
     LaunchedEffect(screen) {
         // Screens without video stop playback.
-        if (screen == Screen.Settings || screen == Screen.Welcome || screen is Screen.PlaylistEditor) vm.stopPlayback()
+        if (screen == Screen.Settings || screen == Screen.Welcome || screen is Screen.PlaylistEditor || screen == Screen.RemoteAdd) {
+            vm.stopPlayback()
+        }
+    }
+
+    // Match the display refresh rate to the channel while watching full screen (e.g. 50 Hz).
+    val tvSettings by vm.settings.collectAsStateWithLifecycle()
+    val frameRate by vm.player.frameRate.collectAsStateWithLifecycle()
+    val matchFrameRate = tvSettings?.matchFrameRate != false
+    LaunchedEffect(frameRate, matchFrameRate, screen == Screen.Player, playingKey) {
+        val activity = toastContext.findActivity() ?: return@LaunchedEffect
+        when {
+            !matchFrameRate || playingKey == null -> DisplayModes.apply(activity, null)
+            screen == Screen.Player && frameRate != null -> DisplayModes.apply(activity, frameRate)
+        }
+    }
+
+    // TV home screen: favorites row and "Continue watching".
+    val homeUi by vm.ui.collectAsStateWithLifecycle()
+    val appContext = toastContext.applicationContext
+    LaunchedEffect(homeUi.channels, tvSettings?.favorites) {
+        if (homeUi.channels.isNotEmpty()) {
+            withContext(Dispatchers.IO) { TvHome.syncChannelRow(appContext, homeUi.channels, tvSettings?.favorites.orEmpty()) }
+        }
+    }
+    LaunchedEffect(playingKey, screen == Screen.Player) {
+        val channel = homeUi.channels.firstOrNull { it.key == playingKey }
+        if (screen == Screen.Player && channel != null) {
+            val programme = homeUi.epg.nowAndNext(channel.key).first?.title
+            withContext(Dispatchers.IO) { TvHome.updateWatchNext(appContext, channel, programme) }
+        }
     }
 
     val stateHolder = rememberSaveableStateHolder()
@@ -201,6 +250,7 @@ private fun AppRoot(vm: MainViewModel, onExit: () -> Unit) {
                     Screen.Player -> PlayerScreen(vm)
                     Screen.Settings -> SettingsScreen(vm)
                     Screen.Guide -> GuideScreen(vm)
+                    Screen.RemoteAdd -> RemoteAddScreen(vm)
                     is Screen.PlaylistEditor -> PlaylistEditorScreen(vm, screen.playlistId)
                 }
             }
