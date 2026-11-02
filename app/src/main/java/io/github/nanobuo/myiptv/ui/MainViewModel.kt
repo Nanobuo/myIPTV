@@ -14,6 +14,7 @@ import io.github.nanobuo.myiptv.update.UpdateInfo
 import io.github.nanobuo.myiptv.update.UpdateStatus
 import kotlinx.coroutines.Job
 import io.github.nanobuo.myiptv.R
+import io.github.nanobuo.myiptv.util.CrashLog
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -68,6 +69,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
     /** Short messages for the user (shown as a toast). */
     val messages: SharedFlow<String> = _messages.asSharedFlow()
+
+    private val _crashReport = MutableStateFlow(CrashLog.consume(app))
+    /** Details of the crash that closed the app last time, shown once. */
+    val crashReport: StateFlow<String?> = _crashReport.asStateFlow()
+
+    fun dismissCrashReport() {
+        _crashReport.value = null
+    }
 
     private val _showUpdateDialog = MutableStateFlow(false)
     val showUpdateDialog: StateFlow<Boolean> = _showUpdateDialog.asStateFlow()

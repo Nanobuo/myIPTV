@@ -188,4 +188,10 @@
     <string name="remote_page_not_found">Page not found: scan the QR code shown on the TV again.</string>
     <string name="home_row_title">myIPTV – Favorites</string>
     <string name="casting_to">Playing on %1$s</string>
+    <string name="cast">Cast</string>
+    <string name="cast_unavailable">Google Cast is not available right now</string>
+    <string name="crash_title">The app closed because of an error</string>
+    <string name="crash_text">Here are the details of the error. You can share them with the developer to get it fixed.</string>
+    <string name="crash_text_tv">Here are the details of the error, useful to get it fixed.</string>
+    <string name="share">Share</string>
 </resources>

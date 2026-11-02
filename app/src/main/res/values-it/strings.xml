@@ -186,4 +186,10 @@
     <string name="remote_page_not_found">Pagina non trovata: inquadra di nuovo il QR code mostrato sulla TV.</string>
     <string name="home_row_title">myIPTV – Preferiti</string>
     <string name="casting_to">In riproduzione su %1$s</string>
+    <string name="cast">Trasmetti</string>
+    <string name="cast_unavailable">Google Cast non è disponibile in questo momento</string>
+    <string name="crash_title">L\'app si è chiusa per un errore</string>
+    <string name="crash_text">Ecco i dettagli dell\'errore. Puoi condividerli con lo sviluppatore per farlo correggere.</string>
+    <string name="crash_text_tv">Ecco i dettagli dell\'errore, utili per farlo correggere.</string>
+    <string name="share">Condividi</string>
 </resources>

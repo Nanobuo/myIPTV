@@ -117,3 +117,36 @@ fun UpdateDialogHost(vm: MainViewModel) {
         }
     }
 }
+
+/** TV: shown once after a crash with the error details. */
+@Composable
+fun CrashDialogHost(vm: MainViewModel) {
+    val report by vm.crashReport.collectAsStateWithLifecycle()
+    val text = report ?: return
+    Dialog(onDismissRequest = { vm.dismissCrashReport() }) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            modifier = Modifier.width(640.dp),
+        ) {
+            Column(Modifier.padding(28.dp)) {
+                val requester = remember { FocusRequester() }
+                Text(stringResource(R.string.crash_title), style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.crash_text_tv))
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text.lines().take(14).joinToString("\n"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.heightIn(max = 220.dp),
+                )
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { vm.dismissCrashReport() }, modifier = Modifier.focusRequester(requester)) {
+                    Text(stringResource(R.string.close))
+                }
+                LaunchedEffect(Unit) { runCatching { requester.requestFocus() } }
+            }
+        }
+    }
+}

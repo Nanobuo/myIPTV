@@ -8,6 +8,7 @@ import io.github.nanobuo.myiptv.data.PlaylistRepository
 import io.github.nanobuo.myiptv.data.SettingsRepository
 import io.github.nanobuo.myiptv.player.PlayerController
 import io.github.nanobuo.myiptv.update.UpdateManager
+import io.github.nanobuo.myiptv.util.CrashLog
 import io.github.nanobuo.myiptv.util.LocaleHelper
 
 class MyIptvApp : Application() {
@@ -20,6 +21,7 @@ class MyIptvApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        CrashLog.install(this)
         container = AppContainer(this)
         // Older versions kept an HTTP cache that could serve outdated playlists: remove it.
         Thread { java.io.File(cacheDir, "http").deleteRecursively() }.start()

@@ -51,6 +51,7 @@ import io.github.nanobuo.myiptv.ui.screens.HomeScreen
 import io.github.nanobuo.myiptv.ui.screens.PlayerScreen
 import io.github.nanobuo.myiptv.ui.screens.PlaylistEditorScreen
 import io.github.nanobuo.myiptv.ui.screens.SettingsScreen
+import io.github.nanobuo.myiptv.ui.screens.CrashDialogHost
 import io.github.nanobuo.myiptv.ui.screens.UpdateDialogHost
 import io.github.nanobuo.myiptv.ui.screens.WelcomeScreen
 import io.github.nanobuo.myiptv.ui.theme.MyIptvTheme
@@ -256,5 +257,6 @@ private fun AppRoot(vm: MainViewModel, onExit: () -> Unit) {
             }
         }
         UpdateDialogHost(vm)
+        CrashDialogHost(vm)
     }
 }

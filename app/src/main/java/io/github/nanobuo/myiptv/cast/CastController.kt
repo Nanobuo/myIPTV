@@ -29,9 +29,20 @@ class CastController(private val context: Context) {
 
     val isCasting: Boolean get() = _deviceName.value != null
 
-    /** True when Google Cast is available on this device (Google Play services present). */
-    var available: Boolean = false
-        private set
+    /**
+     * True when Google Play services are present, so Cast can be offered.
+     * Cast itself is initialized only when the user taps the Cast button.
+     */
+    val available: Boolean by lazy {
+        runCatching {
+            com.google.android.gms.common.GoogleApiAvailability.getInstance()
+                .isGooglePlayServicesAvailable(context) == com.google.android.gms.common.ConnectionResult.SUCCESS
+        }.getOrDefault(false)
+    }
+
+    /** Routes the Cast dialogs should list, available after [attach]. */
+    val routeSelector: androidx.mediarouter.media.MediaRouteSelector?
+        get() = runCatching { castContext?.mergedSelector }.getOrNull()
 
     var onSessionStarted: (() -> Unit)? = null
     var onSessionEnded: (() -> Unit)? = null
@@ -53,9 +64,10 @@ class CastController(private val context: Context) {
         if (castContext != null) return true
         val cast = runCatching { CastContext.getSharedInstance(context) }.getOrNull() ?: return false
         castContext = cast
-        cast.sessionManager.addSessionManagerListener(listener, CastSession::class.java)
-        cast.sessionManager.currentCastSession?.takeIf { it.isConnected }?.let { _deviceName.value = it.castDevice?.friendlyName ?: "Chromecast" }
-        available = true
+        runCatching {
+            cast.sessionManager.addSessionManagerListener(listener, CastSession::class.java)
+            cast.sessionManager.currentCastSession?.takeIf { it.isConnected }?.let { _deviceName.value = it.castDevice?.friendlyName ?: "Chromecast" }
+        }
         return true
     }
 
@@ -71,7 +83,9 @@ class CastController(private val context: Context) {
     }
 
     /** Plays [channel] on the cast device. */
-    fun cast(channel: Channel): Boolean {
+    fun cast(channel: Channel): Boolean = runCatching { castInternal(channel) }.getOrDefault(false)
+
+    private fun castInternal(channel: Channel): Boolean {
         val client = castContext?.sessionManager?.currentCastSession?.remoteMediaClient ?: return false
         val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE).apply {
             putString(MediaMetadata.KEY_TITLE, channel.name)
@@ -89,7 +103,7 @@ class CastController(private val context: Context) {
     }
 
     fun stop() {
-        castContext?.sessionManager?.endCurrentSession(true)
+        runCatching { castContext?.sessionManager?.endCurrentSession(true) }
     }
 
     private fun contentType(channel: Channel): String {

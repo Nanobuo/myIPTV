@@ -112,7 +112,7 @@ fun MobileChannelsScreen(vm: MainViewModel, padding: PaddingValues) {
                     modifier = Modifier.weight(1f),
                 )
                 if (vm.cast.available) {
-                    CastButton(onDark = !io.github.nanobuo.myiptv.ui.theme.LocalIsLightTheme.current, modifier = Modifier.size(48.dp))
+                    CastButton(vm.cast, onDark = !io.github.nanobuo.myiptv.ui.theme.LocalIsLightTheme.current)
                 }
                 IconButton(onClick = {
                     searchOpen = !searchOpen

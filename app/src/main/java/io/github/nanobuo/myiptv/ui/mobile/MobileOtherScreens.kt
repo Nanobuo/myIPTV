@@ -307,3 +307,33 @@ fun MobileUpdateDialog(vm: MainViewModel) {
         else -> Unit
     }
 }
+
+/** Shown once after a crash, so the details can be sent to the developer. */
+@Composable
+fun MobileCrashDialog(vm: MainViewModel) {
+    val report by vm.crashReport.collectAsStateWithLifecycle()
+    val text = report ?: return
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = { vm.dismissCrashReport() },
+        title = { Text(stringResource(R.string.crash_title)) },
+        text = {
+            Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+                Text(stringResource(R.string.crash_text))
+                Spacer(Modifier.height(8.dp))
+                Text(text, style = MaterialTheme.typography.bodySmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                    .setType("text/plain")
+                    .putExtra(android.content.Intent.EXTRA_SUBJECT, "myIPTV crash")
+                    .putExtra(android.content.Intent.EXTRA_TEXT, text)
+                runCatching { context.startActivity(android.content.Intent.createChooser(send, null)) }
+                vm.dismissCrashReport()
+            }) { Text(stringResource(R.string.share)) }
+        },
+        dismissButton = { TextButton(onClick = { vm.dismissCrashReport() }) { Text(stringResource(R.string.close)) } },
+    )
+}

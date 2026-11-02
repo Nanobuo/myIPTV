@@ -17,6 +17,7 @@ profileinstaller = "1.4.1"
 tvprovider = "1.0.0"
 zxing = "3.5.4"
 castFramework = "21.5.0"
+appcompat = "1.7.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -49,6 +50,7 @@ profileinstaller = { module = "androidx.profileinstaller:profileinstaller", vers
 tvprovider = { module = "androidx.tvprovider:tvprovider", version.ref = "tvprovider" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 play-services-cast-framework = { module = "com.google.android.gms:play-services-cast-framework", version.ref = "castFramework" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]

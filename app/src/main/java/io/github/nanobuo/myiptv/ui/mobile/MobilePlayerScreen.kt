@@ -214,7 +214,7 @@ fun MobilePlayerScreen(vm: MainViewModel, inPip: Boolean, onEnterPip: () -> Unit
                     aspectMode = aspectMode,
                     statsVisible = statsVisible,
                     pipSupported = pipSupported && castDevice == null,
-                    castAvailable = vm.cast.available,
+                    cast = vm.cast.takeIf { it.available },
                     onBack = { vm.back() },
                     onPrevious = {
                         touch()
@@ -263,7 +263,7 @@ private fun PlayerControlsOverlay(
     aspectMode: AspectMode,
     statsVisible: Boolean,
     pipSupported: Boolean,
-    castAvailable: Boolean,
+    cast: io.github.nanobuo.myiptv.cast.CastController?,
     onBack: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -314,8 +314,8 @@ private fun PlayerControlsOverlay(
                     tint = if (statsVisible) MaterialTheme.colorScheme.primary else Color.White,
                 )
             }
-            if (castAvailable) {
-                CastButton(onDark = true, modifier = Modifier.size(48.dp))
+            if (cast != null) {
+                CastButton(cast, onDark = true)
             }
             if (pipSupported) {
                 IconButton(onClick = onPip) {

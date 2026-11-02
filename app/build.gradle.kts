@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.tvprovider)
     implementation(libs.zxing.core)
     implementation(libs.play.services.cast.framework)
+    implementation(libs.androidx.appcompat)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
