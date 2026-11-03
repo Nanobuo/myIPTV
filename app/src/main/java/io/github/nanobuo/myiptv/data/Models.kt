@@ -43,7 +43,11 @@ data class Channel(
     val drm: DrmInfo?,
     /** Optional hint: "hls", "dash", "ss" or null to detect automatically. */
     val streamType: String?,
-)
+) {
+    /** True when [other] plays a different stream (address, headers, DRM), ignoring name, number, logo... */
+    fun streamDiffers(other: Channel): Boolean =
+        url != other.url || headers != other.headers || drm != other.drm || streamType != other.streamType
+}
 
 data class Playlist(
     val channels: List<Channel>,

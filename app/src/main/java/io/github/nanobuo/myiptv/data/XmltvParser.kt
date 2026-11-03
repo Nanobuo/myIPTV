@@ -20,13 +20,20 @@ object XmltvParser {
         now: Long = System.currentTimeMillis(),
         keepPastMs: Long = 6 * HOUR,
         keepFutureMs: Long = 4 * DAY,
+        isActive: () -> Boolean = { true },
     ): Map<String, MutableList<Programme>> {
         val byTvgId = HashMap<String, MutableList<String>>()
         val byName = HashMap<String, MutableList<String>>()
+        fun addName(name: String, key: String) {
+            // A name with nothing left after normalization would match unrelated channels.
+            val normalized = normalizeName(name).takeIf { it.isNotEmpty() } ?: return
+            val keys = byName.getOrPut(normalized) { mutableListOf() }
+            if (key !in keys) keys += key
+        }
         channels.forEach { ch ->
             ch.tvgId?.let { byTvgId.getOrPut(it.lowercase()) { mutableListOf() } += ch.key }
-            byName.getOrPut(normalizeName(ch.tvgName ?: ch.name)) { mutableListOf() } += ch.key
-            if (ch.tvgName != null) byName.getOrPut(normalizeName(ch.name)) { mutableListOf() } += ch.key
+            addName(ch.tvgName ?: ch.name, ch.key)
+            if (ch.tvgName != null) addName(ch.name, ch.key)
         }
         // Channels with a tvg-id are matched only by id; the others by name.
         val keysWithId = channels.filter { it.tvgId != null }.mapTo(HashSet()) { it.key }
@@ -40,8 +47,11 @@ object XmltvParser {
         parser.setInput(input, null)
 
         var event = parser.eventType
+        var elements = 0
         while (event != XmlPullParser.END_DOCUMENT) {
             if (event == XmlPullParser.START_TAG) {
+                // Large guides take a while: stop early when the result is no longer needed.
+                if (++elements % 2000 == 0 && !isActive()) throw java.util.concurrent.CancellationException()
                 when (parser.name) {
                     "channel" -> {
                         val id = parser.getAttributeValue(null, "id")
@@ -50,7 +60,8 @@ object XmltvParser {
                             val keys = LinkedHashSet<String>()
                             byTvgId[id.lowercase()]?.let(keys::addAll)
                             (names + id).forEach { n ->
-                                byName[normalizeName(n)]?.filterTo(keys) { it !in keysWithId }
+                                val normalized = normalizeName(n)
+                                if (normalized.isNotEmpty()) byName[normalized]?.filterTo(keys) { it !in keysWithId }
                             }
                             if (keys.isNotEmpty()) xmlIdToKeys[id] = keys.toList()
                         }
@@ -189,11 +200,14 @@ object XmltvParser {
         }
     }
 
-    /** Lowercase, without accents, spaces, punctuation and common quality suffixes. */
+    /**
+     * Lowercase, without accents, spaces, punctuation and common quality suffixes.
+     * Letters of every alphabet are kept (Cyrillic, Greek, Arabic...).
+     */
     internal fun normalizeName(name: String): String {
         var n = Normalizer.normalize(name.lowercase(), Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
         n = n.replace(Regex("""\b(fhd|uhd|hd|sd|4k|hevc|h265|backup|\.it|it)\b"""), " ")
-        return n.replace(Regex("[^a-z0-9+]"), "")
+        return n.replace(Regex("[^\\p{L}\\p{N}+]"), "")
     }
 
     private const val NO_STOP = Long.MIN_VALUE

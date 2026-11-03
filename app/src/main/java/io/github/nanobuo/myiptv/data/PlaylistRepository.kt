@@ -3,6 +3,7 @@ package io.github.nanobuo.myiptv.data
 import android.content.Context
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.io.File
@@ -86,11 +87,13 @@ class PlaylistRepository(
                     }
                 }
                 cache.inputStream().use { input ->
-                    XmltvParser.parse(Network.maybeGunzip(input), playlist.channels).forEach { (key, list) ->
+                    XmltvParser.parse(Network.maybeGunzip(input), playlist.channels, isActive = { isActive }).forEach { (key, list) ->
                         // The first EPG source providing a channel wins.
                         merged.putIfAbsent(key, list)
                     }
                 }
+            } catch (e: java.util.concurrent.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 lastError = e
             }

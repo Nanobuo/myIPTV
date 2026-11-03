@@ -31,6 +31,8 @@ class RemoteInputServer(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var server: ServerSocket? = null
+    /** The form is accepted once: a second submission must not add the playlist again. */
+    private val received = java.util.concurrent.atomic.AtomicBoolean(false)
     private val token = buildString {
         val random = SecureRandom()
         val chars = "abcdefghijkmnpqrstuvwxyz23456789"
@@ -95,6 +97,10 @@ class RemoteInputServer(
             val url = form["url"].orEmpty().trim()
             if (url.isEmpty()) {
                 respond(out, 200, formPage(error = context.getString(R.string.error_missing_source)))
+                return
+            }
+            if (!received.compareAndSet(false, true)) {
+                respond(out, 200, page("✅ " + context.getString(R.string.remote_page_done)))
                 return
             }
             onReceived(

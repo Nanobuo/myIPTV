@@ -68,6 +68,7 @@ import io.github.nanobuo.myiptv.data.PlaylistSource
 import io.github.nanobuo.myiptv.data.SourceType
 import io.github.nanobuo.myiptv.ui.MainViewModel
 import io.github.nanobuo.myiptv.ui.Screen
+import io.github.nanobuo.myiptv.ui.mobile.findActivity
 import io.github.nanobuo.myiptv.ui.theme.ThemeColor
 import io.github.nanobuo.myiptv.ui.theme.appListItemColors
 import io.github.nanobuo.myiptv.ui.theme.appListItemGlow
@@ -223,7 +224,7 @@ fun SettingsScreen(vm: MainViewModel) {
                     onClick = {
                         val next = languageOptions[(languageOptions.indexOf(currentLanguage) + 1) % languageOptions.size]
                         LocaleHelper.setLanguage(context, next)
-                        restartApp(context as Activity)
+                        context.findActivity()?.let(::restartApp)
                     },
                 )
             }

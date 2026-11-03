@@ -12,6 +12,7 @@ import io.github.nanobuo.myiptv.data.Playlist
 import io.github.nanobuo.myiptv.data.PlaylistSource
 import io.github.nanobuo.myiptv.update.UpdateInfo
 import io.github.nanobuo.myiptv.update.UpdateStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import io.github.nanobuo.myiptv.R
 import io.github.nanobuo.myiptv.util.CrashLog
@@ -157,7 +158,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _ui.update { it.copy(playlistLoading = true, playlistError = null, epgError = null) }
             var playlist: Playlist? = null
             if (repo.hasCachedPlaylist(source)) {
-                playlist = runCatching { repo.loadPlaylist(source, refresh = false) }.getOrNull()
+                playlist = try {
+                    repo.loadPlaylist(source, refresh = false)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    null
+                }
                 playlist?.let { applyPlaylist(it) }
             }
             if (refresh || playlist == null) {
@@ -165,6 +172,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     val fresh = repo.loadPlaylist(source, refresh = true)
                     playlist = fresh
                     applyPlaylist(fresh)
+                } catch (e: CancellationException) {
+                    // Replaced by a newer load: nothing to report.
+                    throw e
                 } catch (e: Exception) {
                     val reason = e.message ?: e.javaClass.simpleName
                     if (playlist == null) {
@@ -185,13 +195,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _ui.update { it.copy(epgLoading = true) }
             val age = repo.epgAge(source)
             if (age != null) {
-                runCatching { repo.loadEpg(source, loaded, refresh = false) }
-                    .onSuccess { epg -> _ui.update { it.copy(epg = epg) } }
+                try {
+                    val epg = repo.loadEpg(source, loaded, refresh = false)
+                    _ui.update { it.copy(epg = epg) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    // The saved guide could not be read: it is downloaded again below.
+                }
             }
-            if (forceEpg || age == null || age > EPG_MAX_AGE) {
+            if (forceEpg || age == null || age > EPG_MAX_AGE || _ui.value.epg.isEmpty) {
                 try {
                     val epg = repo.loadEpg(source, loaded, refresh = true)
                     _ui.update { it.copy(epg = epg) }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     if (_ui.value.epg.isEmpty) _ui.update { it.copy(epgError = e.message ?: e.javaClass.simpleName) }
                 }
@@ -203,12 +221,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun applyPlaylist(playlist: Playlist) {
         val groups = playlist.channels.mapNotNull { it.group }.distinct()
         _ui.update { it.copy(channels = playlist.channels, groups = groups, playlistError = null) }
-        // If the channel being played changed in the new playlist (address, headers, quality...),
+        // If the stream of the channel being played changed in the new playlist (address, headers...),
         // restart it with the new data instead of keeping the old stream.
         val playing = player.currentChannel
         if (playing != null && player.playingKey.value == playing.key) {
             playlist.channels.firstOrNull { it.key == playing.key }
-                ?.takeIf { it != playing }
+                ?.takeIf { it.streamDiffers(playing) }
                 ?.let { player.play(it) }
         }
         val s = settings.value ?: return

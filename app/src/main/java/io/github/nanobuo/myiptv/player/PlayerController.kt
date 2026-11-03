@@ -116,10 +116,12 @@ class PlayerController(
     val frameRate: StateFlow<Float?> = _frameRate.asStateFlow()
     private val frameTimes = LongArray(FRAME_SAMPLES)
     @Volatile private var frameSamples = 0
+    /** Sampling starts at the first frame of the new channel, so old frames are not counted. */
+    @Volatile private var frameSampling = false
 
     private val frameListener = VideoFrameMetadataListener { presentationTimeUs, _, format, _ ->
         // Runs on the playback thread, once per rendered frame, until the rate is known.
-        if (_frameRate.value != null) return@VideoFrameMetadataListener
+        if (_frameRate.value != null || !frameSampling) return@VideoFrameMetadataListener
         if (format.frameRate > 0f && format.frameRate != Format.NO_VALUE.toFloat()) {
             _frameRate.value = snapFrameRate(format.frameRate)
             return@VideoFrameMetadataListener
@@ -191,6 +193,13 @@ class PlayerController(
         }
 
         override fun onPlayerError(error: PlaybackException) = handleError(error)
+
+        override fun onRenderedFirstFrame() {
+            if (_frameRate.value == null && !frameSampling) {
+                frameSamples = 0
+                frameSampling = true
+            }
+        }
     }
 
     private val analyticsListener = object : AnalyticsListener {
@@ -261,6 +270,7 @@ class PlayerController(
         _playingKey.value = channel.key
         videoDecoder = null
         audioDecoder = null
+        frameSampling = false
         frameSamples = 0
         _frameRate.value = null
         attempts = buildAttempts(channel)
@@ -280,6 +290,7 @@ class PlayerController(
         handler.removeCallbacksAndMessages(null)
         current = null
         _playingKey.value = null
+        frameSampling = false
         _frameRate.value = null
         _state.value = PlayerUiState()
         player?.stop()
