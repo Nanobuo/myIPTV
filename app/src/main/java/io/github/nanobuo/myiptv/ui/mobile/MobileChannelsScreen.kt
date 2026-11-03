@@ -53,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -99,18 +100,42 @@ fun MobileChannelsScreen(vm: MainViewModel, padding: PaddingValues) {
         }
     }
 
+    // Low screens (phones in landscape): title, groups and icons on a single row.
+    val compactHeader = LocalConfiguration.current.screenHeightDp < 500
+    val groupChips: @Composable (Modifier) -> Unit = { modifier ->
+        LazyRow(
+            modifier = modifier,
+            contentPadding = PaddingValues(horizontal = if (compactHeader) 8.dp else 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(groups, key = { it }) { g ->
+                FilterChip(
+                    selected = g == group,
+                    onClick = { group = g },
+                    label = { Text(groupLabel(g), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    leadingIcon = if (g == GROUP_FAVORITES) {
+                        { Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        null
+                    },
+                )
+            }
+        }
+    }
+
     Row(Modifier.fillMaxSize().padding(padding)) {
         Column(Modifier.weight(1f).fillMaxHeight()) {
             Row(
-                Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp),
+                Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = if (compactHeader) 0.dp else 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = if (compactHeader) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
+                    modifier = if (compactHeader) Modifier else Modifier.weight(1f),
                 )
+                if (compactHeader) groupChips(Modifier.weight(1f))
                 if (vm.cast.available) {
                     CastButton(vm.cast, onDark = !io.github.nanobuo.myiptv.ui.theme.LocalIsLightTheme.current)
                 }
@@ -131,23 +156,7 @@ fun MobileChannelsScreen(vm: MainViewModel, padding: PaddingValues) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(groups, key = { it }) { g ->
-                    FilterChip(
-                        selected = g == group,
-                        onClick = { group = g },
-                        label = { Text(groupLabel(g), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        leadingIcon = if (g == GROUP_FAVORITES) {
-                            { Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
+            if (!compactHeader) groupChips(Modifier.fillMaxWidth())
             if (ui.playlistLoading || ui.epgLoading) {
                 LinearProgressIndicator(Modifier.fillMaxWidth())
             }

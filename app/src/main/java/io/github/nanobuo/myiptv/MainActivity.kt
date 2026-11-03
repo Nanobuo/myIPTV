@@ -203,7 +203,7 @@ private fun AppRoot(vm: MainViewModel, onExit: () -> Unit) {
     val screen = vm.backStack.lastOrNull()
     LaunchedEffect(screen) {
         // Screens without video stop playback.
-        if (screen == Screen.Settings || screen == Screen.Welcome || screen is Screen.PlaylistEditor || screen == Screen.RemoteAdd) {
+        if (screen == Screen.Welcome || screen is Screen.PlaylistEditor || screen == Screen.RemoteAdd) {
             vm.stopPlayback()
         }
     }

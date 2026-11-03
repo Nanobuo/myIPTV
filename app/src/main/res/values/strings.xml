@@ -194,4 +194,5 @@
     <string name="crash_text">Here are the details of the error. You can share them with the developer to get it fixed.</string>
     <string name="crash_text_tv">Here are the details of the error, useful to get it fixed.</string>
     <string name="share">Share</string>
+    <string name="stop_playback">Stop</string>
 </resources>

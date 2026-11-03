@@ -324,22 +324,32 @@ private fun PlayerControlsOverlay(
             }
         }
 
-        // Center: previous / next channel.
-        Row(
-            Modifier.align(Alignment.Center),
-            horizontalArrangement = Arrangement.spacedBy(96.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        // Previous / next channel at the left and right edges, under the thumbs.
+        val zapColors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = Color.Black.copy(alpha = 0.45f),
+            contentColor = Color.White,
+        )
+        FilledTonalIconButton(
+            onClick = onPrevious,
+            colors = zapColors,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(start = 24.dp)
+                .size(64.dp),
         ) {
-            val colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = Color.Black.copy(alpha = 0.45f),
-                contentColor = Color.White,
-            )
-            FilledTonalIconButton(onClick = onPrevious, colors = colors, modifier = Modifier.size(56.dp)) {
-                Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.previous_channel))
-            }
-            FilledTonalIconButton(onClick = onNext, colors = colors, modifier = Modifier.size(56.dp)) {
-                Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.next_channel))
-            }
+            Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.previous_channel), modifier = Modifier.size(32.dp))
+        }
+        FilledTonalIconButton(
+            onClick = onNext,
+            colors = zapColors,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(end = 24.dp)
+                .size(64.dp),
+        ) {
+            Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.next_channel), modifier = Modifier.size(32.dp))
         }
 
         // Bottom: programme progress and buttons.

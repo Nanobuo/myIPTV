@@ -192,4 +192,5 @@
     <string name="crash_text">Ecco i dettagli dell\'errore. Puoi condividerli con lo sviluppatore per farlo correggere.</string>
     <string name="crash_text_tv">Ecco i dettagli dell\'errore, utili per farlo correggere.</string>
     <string name="share">Condividi</string>
+    <string name="stop_playback">Ferma</string>
 </resources>

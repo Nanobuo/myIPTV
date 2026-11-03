@@ -21,6 +21,25 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import io.github.nanobuo.myiptv.ui.components.VideoSurface
+import io.github.nanobuo.myiptv.ui.components.rememberNow
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
@@ -68,7 +87,11 @@ fun isTablet(): Boolean = LocalConfiguration.current.smallestScreenWidthDp >= 60
 
 /** True when there is room for a list and a detail pane side by side. */
 @Composable
-fun isTwoPane(): Boolean = LocalConfiguration.current.screenWidthDp >= 700
+fun isTwoPane(): Boolean = LocalConfiguration.current.let { it.smallestScreenWidthDp >= 600 && it.screenWidthDp >= 700 }
+
+/** Phone held sideways: little height, so navigation goes on the side. */
+@Composable
+fun isLandscape(): Boolean = LocalConfiguration.current.let { it.screenWidthDp > it.screenHeightDp }
 
 fun Context.findActivity(): Activity? {
     var c: Context? = this
@@ -153,12 +176,10 @@ fun MobileRoot(
     }
 
     // ---- Screen-dependent behaviour ----------------------------------------------------------
-    LaunchedEffect(screen, tablet) {
-        when {
-            // Screens without video stop playback; on phones the channel list has no preview.
-            screen == Screen.Settings || screen == Screen.Welcome || screen is Screen.PlaylistEditor -> vm.stopPlayback()
-            screen == Screen.Home && !tablet -> vm.stopPlayback()
-        }
+    LaunchedEffect(screen) {
+        // Adding or editing a playlist stops playback; elsewhere the channel keeps playing
+        // (with the mini player at the bottom when there is no other video on screen).
+        if (screen == Screen.Welcome || screen is Screen.PlaylistEditor) vm.stopPlayback()
     }
     LaunchedEffect(screen, playingKey, settings?.pipEnabled, playerState.videoAspect) { onPipStateChanged() }
 
@@ -199,7 +220,19 @@ fun MobileRoot(
             is Screen.PlaylistEditor -> MobilePlaylistEditor(vm, screen.playlistId)
             else -> {
                 val tab = Tab.entries.firstOrNull { it.screen == screen } ?: Tab.Channels
-                TabScaffold(selected = tab, tablet = tablet, onSelect = { vm.openTab(it.screen) }) { padding ->
+                // The guide and the tablet channel list already show the video.
+                val twoPane = isTwoPane()
+                val showMini = playingKey != null && (tab == Tab.Settings || (tab == Tab.Channels && !twoPane))
+                TabScaffold(
+                    selected = tab,
+                    sideNavigation = tablet || isLandscape(),
+                    onSelect = { vm.openTab(it.screen) },
+                    miniPlayer = if (showMini) {
+                        { MiniPlayer(vm) }
+                    } else {
+                        null
+                    },
+                ) { padding ->
                     stateHolder.SaveableStateProvider(tab.name) {
                         when (tab) {
                             Tab.Channels -> MobileChannelsScreen(vm, padding)
@@ -220,12 +253,13 @@ fun MobileRoot(
 @Composable
 private fun TabScaffold(
     selected: Tab,
-    tablet: Boolean,
+    sideNavigation: Boolean,
     onSelect: (Tab) -> Unit,
+    miniPlayer: (@Composable () -> Unit)?,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    if (tablet) {
-        // Tablets: navigation rail on the side.
+    if (sideNavigation) {
+        // Tablets and phones in landscape: navigation rail on the side.
         Row(Modifier.fillMaxSize()) {
             NavigationRail(Modifier.windowInsetsPadding(WindowInsets.systemBars)) {
                 Tab.entries.forEach { tab ->
@@ -237,12 +271,17 @@ private fun TabScaffold(
                     )
                 }
             }
-            Scaffold(modifier = Modifier.weight(1f)) { padding -> content(padding) }
+            Scaffold(
+                modifier = Modifier.weight(1f),
+                bottomBar = { miniPlayer?.invoke() },
+            ) { padding -> content(padding) }
         }
     } else {
         // Phones: navigation bar at the bottom.
         Scaffold(
             bottomBar = {
+                Column {
+                miniPlayer?.invoke()
                 NavigationBar {
                     Tab.entries.forEach { tab ->
                         NavigationBarItem(
@@ -253,7 +292,60 @@ private fun TabScaffold(
                         )
                     }
                 }
+                }
             },
         ) { padding -> content(padding) }
+    }
+}
+
+/** Small player at the bottom while browsing: tap to go back full screen, X to stop. */
+@Composable
+private fun MiniPlayer(vm: MainViewModel) {
+    val ui by vm.ui.collectAsStateWithLifecycle()
+    val playingKey by vm.player.playingKey.collectAsStateWithLifecycle()
+    val exoPlayer by vm.player.exoPlayer.collectAsStateWithLifecycle()
+    val channel = ui.channels.firstOrNull { it.key == playingKey } ?: return
+    val now by rememberNow()
+    val (current, _) = remember(ui.epg, channel.key, now / 60_000) { ui.epg.nowAndNext(channel.key, now) }
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth().clickable { vm.playChannel(channel) },
+    ) {
+        Row(
+            Modifier.height(64.dp).padding(start = 8.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .padding(vertical = 6.dp)
+                    .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Black),
+            ) {
+                if (exoPlayer != null) VideoSurface(exoPlayer, Modifier.fillMaxSize())
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "${channel.number}  ${channel.name}",
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                current?.let {
+                    Text(
+                        it.title,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            IconButton(onClick = { vm.stopPlayback() }) {
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.stop_playback))
+            }
+        }
     }
 }

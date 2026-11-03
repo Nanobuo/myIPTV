@@ -253,6 +253,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setActivePlaylist(source: PlaylistSource) {
         viewModelScope.launch {
             settingsRepo.setActivePlaylist(source.id)
+            stopPlayback()
             _ui.value = UiState()
             load(source, refresh = true)
         }
@@ -283,11 +284,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             repo.deleteCache(source)
             val s = settings.filterNotNull().first { st -> st.playlists.none { it.id == source.id } }
             if (s.playlists.isEmpty()) {
+                stopPlayback()
                 loadJob?.cancel()
                 _ui.value = UiState()
                 backStack.clear()
                 backStack.add(Screen.Welcome)
             } else if (wasActive) {
+                stopPlayback()
                 _ui.value = UiState()
                 s.activePlaylist?.let { load(it, refresh = true) }
             }
