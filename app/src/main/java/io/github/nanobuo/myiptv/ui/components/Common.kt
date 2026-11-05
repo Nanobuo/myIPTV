@@ -3,6 +3,7 @@ package io.github.nanobuo.myiptv.ui.components
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -46,21 +47,11 @@ fun rememberTimeFormatter(): (Long) -> String {
     return remember(format) { { time: Long -> format.format(Date(time)) } }
 }
 
-/**
- * Neutral mid-gray plate behind channel logos: dark logos and white logos both stay readable on it,
- * over video, gradients and in both light and dark themes.
- */
-private val LogoPlate = androidx.compose.ui.graphics.Color(0xFF8E8E93)
-
 @Composable
 fun ChannelLogo(channel: Channel, modifier: Modifier = Modifier, size: Dp = 48.dp) {
-    val shape = RoundedCornerShape(8.dp)
+    // Logos are shown as they are, without a background.
     Box(
-        modifier = modifier
-            .height(size)
-            .clip(shape)
-            .background(LogoPlate)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+        modifier = modifier.height(size),
         contentAlignment = Alignment.Center,
     ) {
         if (channel.logo != null) {
@@ -79,7 +70,15 @@ fun ChannelLogo(channel: Channel, modifier: Modifier = Modifier, size: Dp = 48.d
 
 @Composable
 private fun LogoPlaceholder(channel: Channel) {
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+    // Channels without a logo: initials on a soft neutral background.
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(8.dp))
+            .background(androidx.compose.ui.graphics.Color(0xFF8E8E93)),
+        contentAlignment = Alignment.Center,
+    ) {
         Text(
             text = channel.name.split(' ').filter { it.isNotBlank() }.take(2)
                 .joinToString("") { it.take(1) }.uppercase(),

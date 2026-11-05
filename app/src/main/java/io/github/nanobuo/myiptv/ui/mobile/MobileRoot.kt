@@ -197,12 +197,8 @@ fun MobileRoot(
                 controller.show(WindowInsetsCompat.Type.systemBars())
             }
         }
-        // Phones watch in landscape; tablets follow the device.
-        activity?.requestedOrientation = if (fullScreen && !tablet) {
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        } else {
-            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
+        // The player follows the device rotation: portrait or landscape.
+        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         onDispose { }
     }
     DisposableEffect(view, playingKey != null) {

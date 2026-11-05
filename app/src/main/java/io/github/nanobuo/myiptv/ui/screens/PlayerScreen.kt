@@ -467,8 +467,8 @@ private fun InfoBanner(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f), Color.Black.copy(alpha = 0.95f))))
-            .padding(start = 48.dp, end = 48.dp, top = 64.dp, bottom = 28.dp),
+            .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f), Color.Black.copy(alpha = 0.7f))))
+            .padding(start = 48.dp, end = 48.dp, top = 48.dp, bottom = 28.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(

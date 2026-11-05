@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -278,7 +279,7 @@ private fun PlayerControlsOverlay(
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.8f), Color.Transparent)))
+                .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent)))
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -357,7 +358,7 @@ private fun PlayerControlsOverlay(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))))
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))))
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
@@ -375,14 +376,16 @@ private fun PlayerControlsOverlay(
                 )
             }
             Spacer(Modifier.height(4.dp))
+            // In portrait there is no room for labels: icons only.
+            val iconsOnly = LocalConfiguration.current.screenWidthDp < 600
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                ControlChip(Icons.Default.CalendarMonth, stringResource(R.string.tv_guide), onGuide)
-                ControlChip(Icons.Default.Info, stringResource(R.string.info)) { onSheet(Sheet.Info) }
+                ControlChip(Icons.Default.CalendarMonth, stringResource(R.string.tv_guide), iconsOnly, onGuide)
+                ControlChip(Icons.Default.Info, stringResource(R.string.info), iconsOnly) { onSheet(Sheet.Info) }
                 Spacer(Modifier.weight(1f))
-                ControlChip(Icons.AutoMirrored.Filled.List, stringResource(R.string.tab_channels)) { onSheet(Sheet.Channels) }
-                ControlChip(Icons.Default.Audiotrack, stringResource(R.string.audio)) { onSheet(Sheet.Audio) }
-                ControlChip(Icons.Default.Subtitles, stringResource(R.string.subtitles)) { onSheet(Sheet.Subtitles) }
-                ControlChip(Icons.Default.AspectRatio, stringResource(aspectMode.label)) { onSheet(Sheet.Aspect) }
+                ControlChip(Icons.AutoMirrored.Filled.List, stringResource(R.string.tab_channels), iconsOnly) { onSheet(Sheet.Channels) }
+                ControlChip(Icons.Default.Audiotrack, stringResource(R.string.audio), iconsOnly) { onSheet(Sheet.Audio) }
+                ControlChip(Icons.Default.Subtitles, stringResource(R.string.subtitles), iconsOnly) { onSheet(Sheet.Subtitles) }
+                ControlChip(Icons.Default.AspectRatio, stringResource(aspectMode.label), iconsOnly) { onSheet(Sheet.Aspect) }
             }
             Text(
                 stringResource(R.string.swipe_hint),
@@ -394,7 +397,13 @@ private fun PlayerControlsOverlay(
 }
 
 @Composable
-private fun ControlChip(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun ControlChip(icon: ImageVector, label: String, iconOnly: Boolean, onClick: () -> Unit) {
+    if (iconOnly) {
+        IconButton(onClick = onClick) {
+            Icon(icon, contentDescription = label, tint = Color.White)
+        }
+        return
+    }
     TextButton(onClick = onClick, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp)) {
         Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp))
