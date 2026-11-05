@@ -5,6 +5,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -101,7 +109,17 @@ private const val CONTROLS_TIMEOUT_MS = 4_000L
  * Tap: show/hide controls. Swipe up/down: next/previous channel.
  */
 @Composable
-fun MobilePlayerScreen(vm: MainViewModel, inPip: Boolean, onEnterPip: () -> Unit) {
+fun MobilePlayerScreen(
+    vm: MainViewModel,
+    inPip: Boolean,
+    onEnterPip: () -> Unit,
+    /** Phone held upright: video at the top, channel details below, tabs at the bottom. */
+    portrait: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    onFullscreen: () -> Unit = {},
+    /** Set when full screen was requested from the portrait layout: back returns there. */
+    onExitFullscreen: (() -> Unit)? = null,
+) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val playerState by vm.player.state.collectAsStateWithLifecycle()
@@ -134,105 +152,138 @@ fun MobilePlayerScreen(vm: MainViewModel, inPip: Boolean, onEnterPip: () -> Unit
 
     val swipeThreshold = with(LocalDensity.current) { 72.dp.toPx() }
     var dragTotal by remember { mutableFloatStateOf(0f) }
+    // Tap: show/hide controls. Swipe up/down: next/previous channel (reversed with "invert").
+    val gestures = Modifier
+        .pointerInput(inPip) {
+            if (inPip) return@pointerInput
+            detectVerticalDragGestures(
+                onDragStart = { dragTotal = 0f },
+                onDragEnd = {
+                    if (kotlin.math.abs(dragTotal) > swipeThreshold) {
+                        val forward = (dragTotal < 0) != invert
+                        vm.zap(if (forward) 1 else -1)
+                    }
+                },
+                onVerticalDrag = { change, amount ->
+                    change.consume()
+                    dragTotal += amount
+                },
+            )
+        }
+        .pointerInput(inPip) {
+            if (inPip) return@pointerInput
+            detectTapGestures(onTap = {
+                if (controlsVisible) controlsVisible = false else touch()
+            })
+        }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .pointerInput(inPip) {
-                if (inPip) return@pointerInput
-                detectVerticalDragGestures(
-                    onDragStart = { dragTotal = 0f },
-                    onDragEnd = {
-                        // Swipe up: next channel, swipe down: previous (reversed with "invert").
-                        if (kotlin.math.abs(dragTotal) > swipeThreshold) {
-                            val forward = (dragTotal < 0) != invert
-                            vm.zap(if (forward) 1 else -1)
-                        }
-                    },
-                    onVerticalDrag = { change, amount ->
-                        change.consume()
-                        dragTotal += amount
-                    },
-                )
-            }
-            .pointerInput(inPip) {
-                if (inPip) return@pointerInput
-                detectTapGestures(onTap = {
-                    if (controlsVisible) controlsVisible = false else touch()
-                })
-            },
-    ) {
-        FullScreenVideo(exoPlayer, if (inPip) AspectMode.Fit else aspectMode, playerState.videoAspect)
-
-        val error = playerState.error
-        val device = castDevice
-        if (device != null && channel != null) {
-            // Casting: the video is on the TV, the phone works as a remote.
-            Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                ChannelLogo(channel, modifier = Modifier.width(140.dp), size = 80.dp)
-                Spacer(Modifier.height(16.dp))
-                Text(channel.name, color = Color.White, style = MaterialTheme.typography.titleLarge)
-                Text(stringResource(R.string.casting_to, device), color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodyMedium)
-            }
-        } else if (error != null && !inPip) {
-            Column(
-                Modifier.align(Alignment.Center).padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+    if (portrait && !inPip) {
+        Column(Modifier.fillMaxSize().padding(contentPadding)) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .background(Color.Black)
+                    .then(gestures),
             ) {
-                Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(40.dp))
-                Spacer(Modifier.height(8.dp))
-                Text(error, color = Color.White, style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(12.dp))
-                Button(onClick = { vm.player.retry() }) { Text(stringResource(R.string.retry)) }
+                FullScreenVideo(exoPlayer, aspectMode, playerState.videoAspect)
+                VideoStatus(channel, castDevice, playerState.error, playerState.buffering, small = true) { vm.player.retry() }
+                AnimatedVisibility(
+                    visible = controlsVisible,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    PortraitVideoControls(
+                        cast = vm.cast.takeIf { it.available },
+                        pipSupported = pipSupported && castDevice == null,
+                        onPrevious = {
+                            touch()
+                            vm.zap(-1)
+                        },
+                        onNext = {
+                            touch()
+                            vm.zap(1)
+                        },
+                        onPip = onEnterPip,
+                        onFullscreen = onFullscreen,
+                    )
+                }
             }
-        } else if (playerState.buffering) {
-            CircularProgressIndicator(Modifier.align(Alignment.Center).size(if (inPip) 24.dp else 48.dp), color = Color.White)
-        }
-
-        // In the small Picture-in-Picture window only the video is shown.
-        AnimatedVisibility(
-            visible = statsVisible && !inPip,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopEnd).windowInsetsPadding(WindowInsets.safeDrawing),
-        ) {
-            StatsPanel(vm, Modifier.clickable { statsVisible = false })
-        }
-
-        AnimatedVisibility(
-            visible = controlsVisible && channel != null && !inPip,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.fillMaxSize(),
-        ) {
             if (channel != null) {
-                PlayerControlsOverlay(
+                PortraitChannelInfo(
+                    vm = vm,
                     channel = channel,
                     epg = ui.epg,
                     now = now,
                     formatTime = formatTime,
+                    favorite = channel.key in settings?.favorites.orEmpty(),
                     aspectMode = aspectMode,
                     statsVisible = statsVisible,
-                    pipSupported = pipSupported && castDevice == null,
-                    cast = vm.cast.takeIf { it.available },
-                    onBack = { vm.back() },
-                    onPrevious = {
-                        touch()
-                        vm.zap(-1)
-                    },
-                    onNext = {
-                        touch()
-                        vm.zap(1)
-                    },
-                    onStats = {
-                        touch()
-                        statsVisible = !statsVisible
-                    },
-                    onPip = onEnterPip,
-                    onGuide = { vm.navigate(Screen.Guide) },
+                    onStats = { statsVisible = !statsVisible },
                     onSheet = { sheet = it },
+                    modifier = Modifier.weight(1f),
                 )
+            }
+        }
+    } else {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .then(gestures),
+        ) {
+            FullScreenVideo(exoPlayer, if (inPip) AspectMode.Fit else aspectMode, playerState.videoAspect)
+            if (!inPip) {
+                VideoStatus(channel, castDevice, playerState.error, playerState.buffering, small = false) { vm.player.retry() }
+            } else if (playerState.buffering) {
+                CircularProgressIndicator(Modifier.align(Alignment.Center).size(24.dp), color = Color.White)
+            }
+
+            // In the small Picture-in-Picture window only the video is shown.
+            AnimatedVisibility(
+                visible = statsVisible && !inPip,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.align(Alignment.TopEnd).windowInsetsPadding(WindowInsets.safeDrawing),
+            ) {
+                StatsPanel(vm, Modifier.clickable { statsVisible = false })
+            }
+
+            AnimatedVisibility(
+                visible = controlsVisible && channel != null && !inPip,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                if (channel != null) {
+                    PlayerControlsOverlay(
+                        channel = channel,
+                        epg = ui.epg,
+                        now = now,
+                        formatTime = formatTime,
+                        aspectMode = aspectMode,
+                        statsVisible = statsVisible,
+                        pipSupported = pipSupported && castDevice == null,
+                        cast = vm.cast.takeIf { it.available },
+                        onBack = { onExitFullscreen?.invoke() ?: vm.back() },
+                        onPrevious = {
+                            touch()
+                            vm.zap(-1)
+                        },
+                        onNext = {
+                            touch()
+                            vm.zap(1)
+                        },
+                        onStats = {
+                            touch()
+                            statsVisible = !statsVisible
+                        },
+                        onPip = onEnterPip,
+                        onGuide = { vm.navigate(Screen.Guide) },
+                        onSheet = { sheet = it },
+                    )
+                }
             }
         }
     }
@@ -253,6 +304,199 @@ fun MobilePlayerScreen(vm: MainViewModel, inPip: Boolean, onEnterPip: () -> Unit
             },
         )
     }
+}
+
+/** Casting, error and loading indicators over the video. */
+@Composable
+private fun BoxScope.VideoStatus(
+    channel: Channel?,
+    castDevice: String?,
+    error: String?,
+    buffering: Boolean,
+    small: Boolean,
+    onRetry: () -> Unit,
+) {
+    when {
+        castDevice != null && channel != null -> Column(
+            // Casting: the video is on the TV, the phone works as a remote.
+            Modifier.align(Alignment.Center).padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            ChannelLogo(channel, modifier = Modifier.width(if (small) 96.dp else 140.dp), size = if (small) 52.dp else 80.dp)
+            Spacer(Modifier.height(if (small) 8.dp else 16.dp))
+            Text(channel.name, color = Color.White, style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.casting_to, castDevice), color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall)
+        }
+        error != null -> Column(
+            Modifier.align(Alignment.Center).padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(if (small) 28.dp else 40.dp))
+            Spacer(Modifier.height(6.dp))
+            Text(error, color = Color.White, style = if (small) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+        }
+        buffering -> CircularProgressIndicator(Modifier.align(Alignment.Center).size(if (small) 36.dp else 48.dp), color = Color.White)
+    }
+}
+
+/** Controls over the video in the portrait layout. */
+@Composable
+private fun PortraitVideoControls(
+    cast: io.github.nanobuo.myiptv.cast.CastController?,
+    pipSupported: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onPip: () -> Unit,
+    onFullscreen: () -> Unit,
+) {
+    Box(Modifier.fillMaxSize()) {
+        Row(
+            Modifier
+                .align(Alignment.TopEnd)
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent))),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            if (cast != null) CastButton(cast, onDark = true)
+            if (pipSupported) {
+                IconButton(onClick = onPip) {
+                    Icon(Icons.Default.PictureInPictureAlt, contentDescription = stringResource(R.string.pip), tint = Color.White)
+                }
+            }
+            IconButton(onClick = onFullscreen) {
+                Icon(Icons.Default.Fullscreen, contentDescription = stringResource(R.string.watch_fullscreen), tint = Color.White)
+            }
+        }
+        val zapColors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = Color.Black.copy(alpha = 0.45f),
+            contentColor = Color.White,
+        )
+        FilledTonalIconButton(
+            onClick = onPrevious,
+            colors = zapColors,
+            modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp).size(48.dp),
+        ) {
+            Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.previous_channel))
+        }
+        FilledTonalIconButton(
+            onClick = onNext,
+            colors = zapColors,
+            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp).size(48.dp),
+        ) {
+            Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.next_channel))
+        }
+    }
+}
+
+/** Details of the channel being played, below the video in the portrait layout. */
+@Composable
+private fun PortraitChannelInfo(
+    vm: MainViewModel,
+    channel: Channel,
+    epg: EpgData,
+    now: Long,
+    formatTime: (Long) -> String,
+    favorite: Boolean,
+    aspectMode: AspectMode,
+    statsVisible: Boolean,
+    onStats: () -> Unit,
+    onSheet: (Sheet) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val (current, next) = remember(epg, channel.key, now / 30_000) { epg.nowAndNext(channel.key, now) }
+    Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ChannelLogo(channel, modifier = Modifier.width(72.dp), size = 44.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "${channel.number}  ${channel.name}",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                channel.group?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            IconButton(onClick = { vm.toggleFavorite(channel) }) {
+                Icon(
+                    if (favorite) Icons.Default.Star else Icons.Default.StarBorder,
+                    contentDescription = stringResource(R.string.group_favorites),
+                    tint = if (favorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        // Actions, scrollable sideways.
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ActionChip(Icons.Default.CalendarMonth, stringResource(R.string.tv_guide)) { vm.navigate(Screen.Guide) }
+            ActionChip(Icons.AutoMirrored.Filled.List, stringResource(R.string.tab_channels)) { onSheet(Sheet.Channels) }
+            ActionChip(Icons.Default.Audiotrack, stringResource(R.string.audio)) { onSheet(Sheet.Audio) }
+            ActionChip(Icons.Default.Subtitles, stringResource(R.string.subtitles)) { onSheet(Sheet.Subtitles) }
+            ActionChip(Icons.Default.AspectRatio, stringResource(aspectMode.label)) { onSheet(Sheet.Aspect) }
+            ActionChip(Icons.Default.QueryStats, stringResource(R.string.stats_title), selected = statsVisible, onClick = onStats)
+        }
+
+        if (statsVisible) {
+            StatsPanel(vm, Modifier.fillMaxWidth())
+        }
+
+        if (current == null && next == null) {
+            Text(stringResource(R.string.no_epg), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (current != null) {
+            Text(stringResource(R.string.now_playing).uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(2.dp))
+            Text(current.title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(R.string.time_range, formatTime(current.start), formatTime(current.stop)) +
+                    "  ·  " + stringResource(R.string.minutes_left, ((current.stop - now) / 60_000).toInt().coerceAtLeast(0)) +
+                    (current.category?.let { "  ·  $it" } ?: ""),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(6.dp))
+            ProgrammeProgress(current.progressAt(now), Modifier.fillMaxWidth())
+            current.description?.let {
+                Spacer(Modifier.height(10.dp))
+                Text(it, style = MaterialTheme.typography.bodyMedium)
+            }
+            Spacer(Modifier.height(20.dp))
+        }
+        if (next != null) {
+            Text(stringResource(R.string.up_next).uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(2.dp))
+            Text(next.title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                stringResource(R.string.time_range, formatTime(next.start), formatTime(next.stop)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            next.description?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(stringResource(R.string.swipe_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun ActionChip(icon: ImageVector, label: String, selected: Boolean = false, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp)) },
+    )
 }
 
 @Composable

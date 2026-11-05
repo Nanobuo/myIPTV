@@ -185,8 +185,14 @@ fun MobileRoot(
 
     val view = LocalView.current
     val activity = context.findActivity()
-    val fullScreen = screen == Screen.Player
-    DisposableEffect(fullScreen, tablet, activity) {
+    // Phone held upright: the player shows the video at the top with the tabs, not full screen.
+    val landscape = isLandscape()
+    val portraitPlayer = screen == Screen.Player && !tablet && !landscape && !inPip
+    // Full screen requested from the portrait player: landscape until the user goes back.
+    var forceLandscape by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(screen) { if (screen != Screen.Player) forceLandscape = false }
+    val fullScreen = screen == Screen.Player && !portraitPlayer
+    DisposableEffect(fullScreen, forceLandscape, activity) {
         val window = activity?.window
         if (window != null) {
             val controller = WindowCompat.getInsetsController(window, view)
@@ -197,8 +203,12 @@ fun MobileRoot(
                 controller.show(WindowInsetsCompat.Type.systemBars())
             }
         }
-        // The player follows the device rotation: portrait or landscape.
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        // The player follows the device rotation, unless full screen was asked from portrait.
+        activity?.requestedOrientation = if (forceLandscape && screen == Screen.Player) {
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
         onDispose { }
     }
     DisposableEffect(view, playingKey != null) {
@@ -211,7 +221,40 @@ fun MobileRoot(
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         when (screen) {
             null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-            Screen.Player -> MobilePlayerScreen(vm, inPip = inPip, onEnterPip = onEnterPip)
+            Screen.Player -> if (portraitPlayer) {
+                // Keep the tab of the screen the player was opened from.
+                val origin = when (vm.backStack.getOrNull(vm.backStack.lastIndex - 1)) {
+                    Screen.Guide -> Tab.Guide
+                    Screen.Settings -> Tab.Settings
+                    else -> Tab.Channels
+                }
+                TabScaffold(
+                    selected = origin,
+                    sideNavigation = false,
+                    onSelect = { vm.openTab(it.screen) },
+                    miniPlayer = null,
+                ) { padding ->
+                    MobilePlayerScreen(
+                        vm,
+                        inPip = inPip,
+                        onEnterPip = onEnterPip,
+                        portrait = true,
+                        contentPadding = padding,
+                        onFullscreen = { forceLandscape = true },
+                    )
+                }
+            } else {
+                MobilePlayerScreen(
+                    vm,
+                    inPip = inPip,
+                    onEnterPip = onEnterPip,
+                    onExitFullscreen = if (forceLandscape) {
+                        { forceLandscape = false }
+                    } else {
+                        null
+                    },
+                )
+            }
             Screen.Welcome -> MobileWelcomeScreen(vm)
             is Screen.PlaylistEditor -> MobilePlaylistEditor(vm, screen.playlistId)
             else -> {
