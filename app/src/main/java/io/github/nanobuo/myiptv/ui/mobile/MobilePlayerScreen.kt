@@ -188,13 +188,8 @@ fun MobilePlayerScreen(
             ) {
                 FullScreenVideo(exoPlayer, aspectMode, playerState.videoAspect)
                 VideoStatus(channel, castDevice, playerState.error, playerState.buffering, small = true) { vm.player.retry() }
-                AnimatedVisibility(
-                    visible = controlsVisible,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    PortraitVideoControls(
+                PortraitVideoControls(
+                        visible = controlsVisible,
                         cast = vm.cast.takeIf { it.available },
                         pipSupported = pipSupported && castDevice == null,
                         onPrevious = {
@@ -208,7 +203,6 @@ fun MobilePlayerScreen(
                         onPip = onEnterPip,
                         onFullscreen = onFullscreen,
                     )
-                }
             }
             if (channel != null) {
                 PortraitChannelInfo(
@@ -344,6 +338,7 @@ private fun BoxScope.VideoStatus(
 /** Controls over the video in the portrait layout. */
 @Composable
 private fun PortraitVideoControls(
+    visible: Boolean,
     cast: io.github.nanobuo.myiptv.cast.CastController?,
     pipSupported: Boolean,
     onPrevious: () -> Unit,
@@ -351,6 +346,7 @@ private fun PortraitVideoControls(
     onPip: () -> Unit,
     onFullscreen: () -> Unit,
 ) {
+    AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.fillMaxSize()) {
     Box(Modifier.fillMaxSize()) {
         Row(
             Modifier
@@ -387,6 +383,7 @@ private fun PortraitVideoControls(
         ) {
             Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.next_channel))
         }
+    }
     }
 }
 
