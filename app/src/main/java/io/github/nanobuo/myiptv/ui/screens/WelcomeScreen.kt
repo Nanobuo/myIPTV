@@ -1,5 +1,7 @@
 package io.github.nanobuo.myiptv.ui.screens
 
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,12 +42,7 @@ fun WelcomeScreen(vm: MainViewModel) {
     LaunchedEffect(Unit) { runCatching { requester.requestFocus() } }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.widthIn(max = 640.dp)) {
-            Icon(
-                Icons.Default.LiveTv,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(96.dp),
-            )
+            Image(painterResource(R.drawable.ic_logo), contentDescription = null, modifier = Modifier.size(112.dp))
             Spacer(Modifier.height(24.dp))
             Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center)
             Spacer(Modifier.height(16.dp))

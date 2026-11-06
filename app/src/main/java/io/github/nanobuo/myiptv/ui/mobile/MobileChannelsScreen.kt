@@ -1,5 +1,7 @@
 package io.github.nanobuo.myiptv.ui.mobile
 
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -129,6 +131,11 @@ fun MobileChannelsScreen(vm: MainViewModel, padding: PaddingValues) {
                 Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = if (compactHeader) 0.dp else 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Image(
+                    painterResource(R.drawable.ic_logo),
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 10.dp).size(if (compactHeader) 26.dp else 32.dp),
+                )
                 Text(
                     stringResource(R.string.app_name),
                     style = if (compactHeader) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,

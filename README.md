@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo/logo.png" width="128" alt="myIPTV"></p>
+
 # myIPTV
 
 **myIPTV** è un'app per guardare i canali TV della tua playlist IPTV su **Android TV** e **Google TV**

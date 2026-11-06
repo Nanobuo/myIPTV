@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- myIPTV mark, scaled to stay inside the adaptive icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.86"
+        android:scaleY="0.86"
+        android:translateY="1.5">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M38,44H70A9,9 0,0 1,79 53V69A9,9 0,0 1,70 78H38A9,9 0,0 1,29 69V53A9,9 0,0 1,38 44Z M50.2,52.6C49.3,52.1 48.5,52.6 48.5,53.6V68.4C48.5,69.4 49.3,69.9 50.2,69.4L61.6,62.2C62.4,61.7 62.4,60.3 61.6,59.8Z" />
+        <path
+            android:pathData="M46.5,37A10,10 0,0 1,61.5 37"
+            android:strokeWidth="4"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M41,32A18,18 0,0 1,67 32"
+            android:strokeWidth="4"
+            android:strokeAlpha="0.65"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round" />
+    </group>
+</vector>

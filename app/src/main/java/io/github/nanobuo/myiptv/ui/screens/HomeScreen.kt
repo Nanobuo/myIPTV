@@ -1,5 +1,7 @@
 package io.github.nanobuo.myiptv.ui.screens
 
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -150,7 +152,7 @@ fun HomeScreen(vm: MainViewModel) {
         // ---- Groups -----------------------------------------------------------------------
         Column(modifier = Modifier.width(220.dp).fillMaxHeight()) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp, bottom = 16.dp)) {
-                Icon(Icons.Default.LiveTv, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Image(painterResource(R.drawable.ic_logo), contentDescription = null, modifier = Modifier.size(32.dp))
                 Spacer(Modifier.width(10.dp))
                 Text(
                     stringResource(R.string.app_name),

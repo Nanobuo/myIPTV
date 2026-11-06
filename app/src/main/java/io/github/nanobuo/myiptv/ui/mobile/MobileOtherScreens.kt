@@ -1,5 +1,7 @@
 package io.github.nanobuo.myiptv.ui.mobile
 
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import android.content.ActivityNotFoundException
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -74,7 +76,7 @@ import java.util.UUID
 fun MobileWelcomeScreen(vm: MainViewModel) {
     Box(Modifier.fillMaxSize().systemBarsPadding().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.widthIn(max = 520.dp)) {
-            Icon(Icons.Default.LiveTv, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(80.dp))
+            Image(painterResource(R.drawable.ic_logo), contentDescription = null, modifier = Modifier.size(96.dp))
             Spacer(Modifier.height(20.dp))
             Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
             Spacer(Modifier.height(12.dp))
